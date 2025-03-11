@@ -149,7 +149,12 @@ export default function Header() {
     return (
         <header className="flex justify-between items-center p-4 border-b bg-white shadow-sm">
             {/* Logo */}
-            <div className="text-xl font-bold">LOGO</div>
+            <Button
+            className="cursor-pointer text-xl hover:border-2"
+                variant={"ghost"}
+            >
+                GS Helper
+            </Button>
 
             {/* Navigation pour desktop */}
             <nav className="hidden md:flex md:items-center md:space-x-6">
@@ -220,7 +225,7 @@ export default function Header() {
                             </Button>
                         </DropdownMenu>
                         <input type="text" placeholder="Rechercher un jeu..." className="w-full p-2 border rounded-md" aria-label="Rechercher un jeu" />
-                        
+
                         <div className="flex flex-col space-y-2 pt-4 border-t">
                             <Button className="w-full" variant="ghost">Connexion</Button>
                             <Button className="w-full" variant="default">Inscription</Button>
