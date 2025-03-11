@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mon Application",
+  title: "GS Helper",
   description: "Détecte ta configuration et optimise tes jeux",
 };
 
