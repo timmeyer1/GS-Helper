@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { MonitorCog, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function Home() {
     return (
@@ -17,10 +18,12 @@ export default function Home() {
                         Analyser mes périphériques
                         <MonitorCog className="ml-2 h-5 w-5" />
                     </Button>
-                    <Button variant="purple" className="w-full sm:w-auto cursor-pointer" size="lg">
-                        Parcourir les jeux
-                        <Gamepad2 className="ml-2 h-5 w-5" />
-                    </Button>
+                    <Link href="/search">
+                        <Button variant="purple" className="w-full sm:w-auto cursor-pointer" size="lg">
+                            Parcourir les jeux
+                            <Gamepad2 className="ml-2 h-5 w-5" />
+                        </Button>
+                    </Link>
                 </div>
             </div>
             <div className="hidden lg:block">

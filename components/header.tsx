@@ -5,9 +5,17 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, MonitorSmartphone, Settings2, Gamepad2, Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
+type Game = {
+    id: number,
+    name: string,
+    cover?: { image_id: string }
+};
+
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const drawerRef = useRef<HTMLDivElement>(null);
+    const [games, setGames] = useState<Game[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Gestionnaire pour fermer le drawer en cliquant en dehors
     useEffect(() => {
@@ -44,6 +52,35 @@ export default function Header() {
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, [mobileMenuOpen]);
+
+    useEffect(() => {
+        async function fetchGames() {
+            try {
+                const response = await fetch('/api/igdb', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        endpoint: 'games',
+                        query: `
+                            where id = (1877, 119133, 1020, 1942, 25076, 215060, 136625);
+                            fields name, cover.image_id;
+                        `,
+                    }),
+                });
+
+                const data = await response.json();
+                setGames(data);
+            } catch (error) {
+                console.error('Erreur de récupération des jeux:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchGames();
+    }, []);
 
     function DropdownMenu({
         label,
@@ -150,24 +187,38 @@ export default function Header() {
         <header className="flex justify-between items-center p-4 border-b bg-white shadow-sm">
             {/* Logo */}
             <Button
-            className="cursor-pointer text-xl hover:border-2"
+                className="cursor-pointer text-xl hover:border-2"
                 variant={"ghost"}
             >
-                GS Helper
+                <Link href={"/"}>
+                    GS Helper
+                </Link>
             </Button>
 
             {/* Navigation pour desktop */}
             <nav className="hidden md:flex md:items-center md:space-x-6">
                 <DropdownMenu label="Jeux" width="w-[600px]">
                     <div className="px-4 py-2 text-gray-500 text-sm">Jeux populaires:</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2 p-2">
-                        <GameCard title="Cyberpunk 2077" />
-                        <GameCard title="Elden Ring" />
-                        <GameCard title="GTA VI" />
-                        <GameCard title="The Witcher 3" />
-                        <GameCard title="Red Dead Redemption 2" />
-                        <GameCard title="Assassin's Creed Mirage" />
-                        <GameCard title="Hogwarts Legacy" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4 p-4">
+                        {isLoading ? (
+                            <div>Chargement...</div>
+                        ) : (
+                            games.map((game) => (
+                                <div key={game.id} className="text-center group">
+                                    <Link href={`/games/${game.id}`}>
+                                        {game.cover ? (
+                                            <img
+                                                src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
+                                                alt={game.name}
+                                                className="w-full h-auto rounded-lg mb-2 cursor-pointer group-hover:scale-105 group-hover:shadow-xl transition-transform duration-300"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-24 bg-gray-300 rounded-lg mb-2 cursor-pointer group-hover:scale-105 group-hover:shadow-xl transition-transform duration-300" />
+                                        )}
+                                    </Link>
+                                </div>
+                            ))
+                        )}
                     </div>
                     <div className="border-t p-2">
                         <input
@@ -178,6 +229,7 @@ export default function Header() {
                         />
                     </div>
                 </DropdownMenu>
+
 
                 <DropdownMenu label="Scanneur" width="w-64">
                     <Button variant="ghost" className="w-full justify-start">
@@ -236,3 +288,5 @@ export default function Header() {
         </header>
     );
 }
+
+// VERSION QUI MARCHE
