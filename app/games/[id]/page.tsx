@@ -1,6 +1,6 @@
 // app/games/[id]/page.tsx
 import { fetchFromIGDB } from '@/lib/igdb';
-import { GameDetail } from '@/components/GameDetail';
+import { GameDetail } from '@/components/gamedetail';
 import { notFound } from 'next/navigation';
 
 // Définition du type pour les jeux
