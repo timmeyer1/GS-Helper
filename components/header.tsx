@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, MonitorSmartphone, Settings2, Gamepad2, Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { slugify } from '@/utils/slugify';
 
 type Game = {
     id: number,
@@ -205,7 +206,7 @@ export default function Header() {
                         ) : (
                             games.map((game) => (
                                 <div key={game.id} className="text-center group">
-                                    <Link href={`/games/${game.id}`}>
+                                    <Link href={`/games/${slugify(game.name)}`}>
                                         {game.cover ? (
                                             <img
                                                 src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}

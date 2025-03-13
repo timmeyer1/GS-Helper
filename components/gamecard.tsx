@@ -1,11 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { slugify } from '@/utils/slugify';
 
 type Game = {
     id: number;
     name: string;
-    cover?: { image_id: string };
+    cover?: { image_id: string }
 };
 
 interface GameCardProps {
@@ -14,11 +15,13 @@ interface GameCardProps {
 
 const GameCard: React.FC<GameCardProps> = ({ game }) => {
     return (
-        <Link href={`/games/${game.id}`} className="group">
-            <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300">
+        // <Link href={`/games/${game.id}`} className="group">
+        <Link href={`/games/${slugify(game.name)}`} className="group">
+            <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-md transition-all duration-300 
+                            group-hover:shadow-[0_0_8px_3px_rgba(192,132,252,1)]">
                 <Image
                     src={game.cover
-                        ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`
+                        ? `https://images.igdb.com/igdb/image/upload/t_1080p/${game.cover.image_id}.jpg`
                         : '/placeholder-game.jpg'
                     }
                     alt={game.name}

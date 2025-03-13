@@ -1,4 +1,3 @@
-// app/games/[id]/page.tsx
 import { fetchFromIGDB } from '@/lib/igdb';
 import { GameDetail } from '@/components/gamedetail';
 import { notFound } from 'next/navigation';
@@ -7,6 +6,7 @@ import { notFound } from 'next/navigation';
 type Game = {
     id: number;
     name: string;
+    slug: string;
     summary?: string;
     cover?: { id: number; image_id: string };
     screenshots?: Array<{ id: number; image_id: string }>;
@@ -16,27 +16,29 @@ type Game = {
     rating?: number;
 };
 
-// Cette fonction génère les paramètres pour les routes statiques
+// Générer des slugs pour le rendu statique
 export async function generateStaticParams() {
     try {
-        // Récupérer les jeux populaires pour pré-rendre leurs pages
-        const games = await fetchFromIGDB<Game[]>('games', 'fields id; limit 50; sort popularity desc;');
+        const games = await fetchFromIGDB<Game[]>(
+            'games',
+            'fields id, name, slug; limit 50; sort popularity desc;'
+        );
 
-        return games.map((game: Game) => ({
-            id: game.id.toString(),
+        return games.map((game) => ({
+            slug: game.slug,
         }));
     } catch (error) {
         console.error('Erreur dans generateStaticParams:', error);
-        return []; // Retourne un tableau vide en cas d'erreur
+        return [];
     }
 }
 
-async function getGame(id: string): Promise<Game | null> {
+async function getGame(slug: string): Promise<Game | null> {
     try {
         const query = `
       fields name, summary, cover.image_id, screenshots.image_id, 
-      genres.name, platforms.name, release_dates.human, rating;
-      where id = ${id};
+      genres.name, platforms.name, release_dates.human, rating, slug;
+      where slug = "${slug}";
     `;
 
         const games = await fetchFromIGDB<Game[]>('games', query);
@@ -47,8 +49,8 @@ async function getGame(id: string): Promise<Game | null> {
     }
 }
 
-export default async function GamePage({ params }: { params: { id: string } }) {
-    const game = await getGame(params.id);
+export default async function GamePage({ params }: { params: { slug: string } }) {
+    const game = await getGame(params.slug);
 
     if (!game) {
         notFound();
