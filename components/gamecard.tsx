@@ -1,7 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { slugify } from '@/utils/slugify';
 
 type Game = {
     id: number;
@@ -16,7 +15,8 @@ interface GameCardProps {
 const GameCard: React.FC<GameCardProps> = ({ game }) => {
     return (
         // <Link href={`/games/${game.id}`} className="group">
-        <Link href={`/games/${slugify(game.name)}`} className="group">
+        <Link href={`/games/${game.id}`} className="group">
+
             <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-md transition-all duration-300 
                             group-hover:shadow-[0_0_8px_3px_rgba(192,132,252,1)]">
                 <Image
