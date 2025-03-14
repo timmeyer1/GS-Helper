@@ -15,7 +15,7 @@ export default function Home() {
                 </h3>
                 <div className="flex flex-col sm:flex-row gap-4 mt-2">
                     <Button variant="blue" className="w-full sm:w-auto cursor-pointer" size="lg">
-                        Analyser mes périphériques
+                        Choisir mes périphériques
                         <MonitorCog className="ml-2 h-5 w-5" />
                     </Button>
                     <Link href="/search">
