@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, MonitorSmartphone, Settings2, Gamepad2, Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import UserButton from './user-button';
+import { SessionProvider } from 'next-auth/react';
 
 type Game = {
     id: number,
@@ -242,8 +244,9 @@ export default function Header() {
 
                 {/* Auth */}
                 <div className="flex space-x-4">
-                    <Button className="cursor-pointer" variant="ghost">Connexion</Button>
-                    <Button className="cursor-pointer" variant="default">Inscription</Button>
+                    <SessionProvider>
+                        <UserButton />
+                    </SessionProvider>
                 </div>
             </nav>
 

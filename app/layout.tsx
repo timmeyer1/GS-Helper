@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import "./globals.css";
 import type { Metadata } from "next";
 import Footer from "@/components/footer";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "GS Helper",
@@ -13,7 +14,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <body>
         <Header />
-        <main>{children}</main>
+        <main>
+          <Toaster />
+          {children}
+        </main>
         <Footer />
       </body>
     </html>

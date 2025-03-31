@@ -14,6 +14,9 @@ import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import Link from "next/link";
 import React, { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { TriangleAlert } from "lucide-react";
 
 const Register = () => {
     const [form, setForm] = useState({
@@ -23,20 +26,35 @@ const Register = () => {
         confirmPassword: ""
     })
     const [pending, setPending] = useState(false);
+    const [error, setError] = useState(null);
+    const router = useRouter();
 
-    const handleSubmit = async (e:React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setPending(true);
 
-        const res = await fetch ("/api/auth/register", {
+        const res = await fetch("/api/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(form),
-        })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            setPending(false);
+            toast.success(data.message);
+            router.push("/login");
+        } else if (res.status === 400) {
+            setError(data.message)
+            setPending(false);
+        } else if (res.status === 500) {
+            setError(data.message)
+            setPending(false);
+        }
     }
 
     return (
-        <div className="h-full flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
             <Card className="md:h-auto w-[80%] sm:w-[420px] p-4 sm:p-8">
                 <CardHeader className="text-center">
                     <CardTitle>
@@ -46,6 +64,12 @@ const Register = () => {
                         Créer un compte avec email ou service.
                     </CardDescription>
                 </CardHeader>
+                {!!error && (
+                    <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
+                        <TriangleAlert />
+                        <p>{error}</p>
+                    </div>
+                )}
                 <CardContent className="px-2 sm:px-6">
                     <form onSubmit={handleSubmit} className="space-y-3">
                         <Input
