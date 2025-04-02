@@ -232,15 +232,14 @@ export default function Header() {
                     </div>
                 </DropdownMenu>
 
-
-                <DropdownMenu label="Scanneur" width="w-64">
-                    <Button variant="ghost" className="w-full justify-start">
-                        <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-start">
-                        <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
-                    </Button>
-                </DropdownMenu>
+                    <DropdownMenu label="Scanneur" width="w-64" >
+                        <Button variant="ghost" className="w-full justify-start">
+                            <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start">
+                            <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
+                        </Button>
+                    </DropdownMenu>
 
                 {/* Auth */}
                 <div className="flex space-x-4">
@@ -291,5 +290,3 @@ export default function Header() {
         </header>
     );
 }
-
-// VERSION QUI MARCHE
