@@ -42,7 +42,7 @@ const UserButton = () => {
     // Si l'utilisateur est connecté, afficher le menu utilisateur
     const avatarFallback = session.user?.name
         ? session.user.name.charAt(0).toUpperCase()
-        : "W";
+        : "?";
 
     const handleSignOut = async () => {
         await signOut({
@@ -54,7 +54,7 @@ const UserButton = () => {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative flex items-center gap-2 hover:bg-gray-100 rounded-full p-1 pl-2">
+                <Button variant="ghost" className="relative flex items-center gap-2 hover:bg-gray-100 rounded-full p-1 pl-2 cursor-pointer">
                     <span className="text-sm font-medium hidden sm:inline-block">
                         {session.user?.name}
                     </span>
@@ -75,8 +75,10 @@ const UserButton = () => {
                     <p className="text-sm text-gray-500 truncate">{session.user?.email}</p>
                 </div>
                 <DropdownMenuItem className="cursor-pointer flex items-center gap-2 hover:bg-gray-100">
-                    <User className="h-4 w-4" />
-                    <span>Mon profil</span>
+                    <Link href={"/profile"} className="flex items-center gap-2 w-full">
+                        <User className="h-4 w-4" />
+                        <span>Mon profil</span>
+                    </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer flex items-center gap-2 hover:bg-gray-100">
                     <Settings className="h-4 w-4" />

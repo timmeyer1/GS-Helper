@@ -20,7 +20,7 @@ import { TriangleAlert } from "lucide-react";
 
 const Register = () => {
     const [form, setForm] = useState({
-        username: "",
+        name: "",
         email: "",
         password: "",
         confirmPassword: ""
@@ -76,8 +76,8 @@ const Register = () => {
                             type="text"
                             disabled={pending}
                             placeholder="Nom d'utilisateur"
-                            value={form.username}
-                            onChange={(e) => setForm({ ...form, username: e.target.value })}
+                            value={form.name}
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
                             required
                         />
 

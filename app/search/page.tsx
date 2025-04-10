@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { SearchBar } from '@/components/searchbar';
 import GameCard from '@/components/gamecard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Game = {
     id: number;
@@ -222,7 +223,15 @@ export default function SearchPage() {
                             <GameCard key={game.id} game={game} />
                         ))
                     ) : (
-                        <div className="text-center text-gray-500">Chargement...</div>
+                        [...Array(10)].map((_, i) => (
+                            <div key={i} className="space-y-2">
+                                <Skeleton
+                                    className="bg-gray-200 rounded-lg"
+                                    style={{ height: 256 }}
+                                />
+                                <Skeleton className="h-4 w-[90%]" />
+                            </div>
+                        ))
                     )}
                 </div>
             </div>

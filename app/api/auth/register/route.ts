@@ -1,16 +1,16 @@
 import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
-import User from '@/models/user';
+import User from '@/models/user/User';
 import connectToDatabase from '@/lib/mongodb';
 
 export async function POST(request: Request) {
-    const { username, email, password, confirmPassword } = await request.json();
+    const { name, email, password, confirmPassword } = await request.json();
 
     const isValidEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     }
-    if (!username || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword) {
         return NextResponse.json({ message: " Tous les champs sont requis" }, { status: 400 });
     }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
         const newUser = new User({
             email,
-            username,
+            name,
             password: hashedPassword,
         });
         await newUser.save();

@@ -1,14 +1,16 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
 interface IUser extends Document {
-    username: string;
+    name: string;
     email: string;
     password?: string; // on met un "?" psq il peut se connecter avec les services
+    isAdmin: boolean;
     id: string;
+    userconfig_id: mongoose.Types.ObjectId;
 }
 
 const UserSchema: Schema<IUser> = new mongoose.Schema({
-    username: {
+    name: {
         type: String,
         required: true,
     },
@@ -21,6 +23,14 @@ const UserSchema: Schema<IUser> = new mongoose.Schema({
         type: String,
         require: false,
     },
+    isAdmin: {
+        type: Boolean,
+        default: false,
+    },
+    userconfig_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'UserConfig',
+    }
 })
 
 const User: Model<IUser> =
