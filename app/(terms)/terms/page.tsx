@@ -11,7 +11,7 @@ export default function TermsAndConditions() {
                     <div className="flex items-center mb-6">
                         <Shield className="h-8 w-8 text-purple-600 mr-3" />
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                            Conditions <span className="underline">Générales</span>
+                            Conditions Générales
                         </h1>
                     </div>
                     

@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
                     <div className="flex items-center mb-6">
                         <Lock className="h-8 w-8 text-purple-600 mr-3" />
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                            Politique de <span className="underline">Confidentialité</span>
+                            Politique de Confidentialité
                         </h1>
                     </div>
                     

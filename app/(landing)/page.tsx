@@ -8,7 +8,7 @@ export default function Home() {
         <div className="min-h-screen flex flex-col lg:flex-row lg:justify-around p-4 sm:p-6 md:p-10 lg:p-16">
             <div className="space-y-4 lg:space-y-6 w-full lg:w-2/5 max-w-xl">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                    Les meilleurs <span className="underline">réglages</span> pour vos jeux
+                    Les meilleurs réglages pour vos jeux
                 </h1>
                 <h3 className="text-base sm:text-lg md:text-xl font-medium text-gray-700">
                     GS Helper permet de trouver les meilleurs réglages pour vos jeux en fonction de votre configuration.

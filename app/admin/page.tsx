@@ -8,7 +8,7 @@ export default function Admin() {
             {/* En-tête */}
             <div className="w-full max-w-6xl mx-auto mb-10">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4">
-                    Tableau de <span className="underline">bord</span> administrateur
+                    Tableau de bord administrateur
                 </h1>
                 <h3 className="text-base sm:text-lg md:text-xl font-medium text-gray-700">
                     Gérez les jeux et les utilisateurs de GS Helper depuis cette interface.
