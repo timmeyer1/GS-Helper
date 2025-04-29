@@ -1,68 +1,112 @@
+// app/profile/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { UserRound } from "lucide-react";
+import { UserRound, Loader2, Settings } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { redirect } from "next/navigation";
+import UserProfileEditDialog from "@/components/user/UserProfileEditDialog";
+import HardwareConfigDialog from "@/components/user/HardwareConfigDialog";
+import { HardwareItem } from "@/components/user/HardwareSelectDialog";
 
-const gpus = [
-  "NVIDIA GeForce RTX 3060",
-  "NVIDIA GeForce RTX 3070",
-  "NVIDIA GeForce RTX 3080",
-  "AMD Radeon RX 6800",
-  "AMD Radeon RX 6900 XT",
-];
+// Types pour les données utilisateur
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+}
 
-const cpus = [
-  "Intel Core i5-12400F",
-  "Intel Core i7-12700K",
-  "AMD Ryzen 5 5600X",
-  "AMD Ryzen 7 5800X",
-];
+interface UserConfig {
+  gpu_id?: HardwareItem;
+  cpu_id?: HardwareItem;
+  ram_id?: HardwareItem;
+  screen_resolution_id?: HardwareItem;
+}
+
+interface UserData {
+  user: User;
+  config: UserConfig | null;
+}
 
 const Profile = () => {
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedComponent, setSelectedComponent] = useState("");
-  const [pcConfig, setPcConfig] = useState({
-    gpu: "Aucune donnée",
-    cpu: "Aucune donnée",
-    ram: "Aucune donnée",
-    resolution: "Aucune donnée",
-  });
+  const { data: session, status } = useSession();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [userProfileDialogOpen, setUserProfileDialogOpen] = useState(false);
+  const [hardwareConfigDialogOpen, setHardwareConfigDialogOpen] = useState(false);
 
-  const handleOpenDialog = (component: string) => {
-    setSelectedComponent(component);
-    setOpenDialog(true);
-  };
-
-  const handleSelectItem = (item: string) => {
-    setPcConfig((prev) => ({
-      ...prev,
-      [selectedComponent]: item,
-    }));
-    setOpenDialog(false);
-  };
-
-  const getOptions = () => {
-    switch (selectedComponent) {
-      case "gpu":
-        return gpus;
-      case "cpu":
-        return cpus;
-      default:
-        return [];
+  // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      redirect("/login");
     }
+  }, [status]);
+
+  // Charger les données utilisateur
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (status === "authenticated" && session) {
+        try {
+          const response = await fetch("/api/user");
+
+          if (!response.ok) {
+            throw new Error("Erreur lors de la récupération des données utilisateur");
+          }
+
+          const data = await response.json() as UserData;
+          setUserData(data);
+        } catch (error) {
+          console.error("Erreur lors de la récupération des données utilisateur:", error);
+          toast.error("Impossible de charger vos données utilisateur");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [status, session]);
+
+  // Gérer la mise à jour des données utilisateur
+  const handleUserUpdated = (user: User) => {
+    setUserData((prev) => (prev ? { ...prev, user } : null));
   };
+
+  // Gérer la mise à jour de la configuration matérielle
+  const handleConfigUpdated = (config: UserConfig) => {
+    setUserData((prev) => (prev ? { ...prev, config } : null));
+  };
+
+  // Afficher un écran de chargement
+  if (loading || status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-10 lg:p-16">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center mb-8">
-          <UserRound className="h-8 w-8 text-purple-600 mr-3" />
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-            Mon Profil
-          </h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <UserRound className="h-8 w-8 text-purple-600 mr-3" />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
+              Mon Profil
+            </h1>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setUserProfileDialogOpen(true)}
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Description */}
@@ -73,75 +117,87 @@ const Profile = () => {
         {/* Informations */}
         <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
           <section className="pb-4 border-b border-gray-200">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3">Informations</h2>
-            <p className="text-gray-700">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio.
-              Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at
-              nibh elementum imperdiet.
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl sm:text-2xl font-semibold">Informations personnelles</h2>
+            </div>
+            {userData?.user ? (
+              <div className="space-y-2">
+                <p className="flex justify-between">
+                  <span className="font-semibold">Nom:</span> {userData.user.name}
+                </p>
+                <p className="flex justify-between">
+                  <span className="font-semibold">Email:</span> {userData.user.email}
+                </p>
+                <p className="flex justify-between">
+                  <span className="font-semibold">Statut:</span>{" "}
+                  {userData.user.isAdmin ? "Administrateur" : "Utilisateur"}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500">Information utilisateur non disponible</p>
+            )}
           </section>
 
           {/* Configuration PC */}
           <section>
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3">Ma Configuration PC</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl sm:text-2xl font-semibold">Ma Configuration PC</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHardwareConfigDialogOpen(true)}
+              >
+                Modifier la configuration
+              </Button>
+            </div>
             <ul className="space-y-3">
               <li className="flex items-center justify-between">
                 <span>
-                  Carte graphique: <span className="font-semibold">{pcConfig.gpu}</span>
+                  Carte graphique: <span className="font-semibold">
+                    {userData?.config?.gpu_id?.libelle || "Non configuré"}
+                  </span>
                 </span>
-                <Button variant="outline" size="sm" onClick={() => handleOpenDialog("gpu")}>
-                  Modifier
-                </Button>
               </li>
               <li className="flex items-center justify-between">
                 <span>
-                  Processeur: <span className="font-semibold">{pcConfig.cpu}</span>
+                  Processeur: <span className="font-semibold">
+                    {userData?.config?.cpu_id?.libelle || "Non configuré"}
+                  </span>
                 </span>
-                <Button variant="outline" size="sm" onClick={() => handleOpenDialog("cpu")}>
-                  Modifier
-                </Button>
               </li>
               <li className="flex items-center justify-between">
                 <span>
-                  Nombre de RAM: <span className="font-semibold">{pcConfig.ram}</span>
+                  Mémoire RAM: <span className="font-semibold">
+                    {userData?.config?.ram_id?.libelle || "Non configuré"}
+                  </span>
                 </span>
-                <Button variant="outline" size="sm" onClick={() => handleOpenDialog("ram")}>
-                  Modifier
-                </Button>
               </li>
               <li className="flex items-center justify-between">
                 <span>
-                  Résolution d&apos;écran: <span className="font-semibold">{pcConfig.resolution}</span>
+                  Résolution d&apos;écran: <span className="font-semibold">
+                    {userData?.config?.screen_resolution_id?.libelle || "Non configuré"}
+                  </span>
                 </span>
-                <Button variant="outline" size="sm" onClick={() => handleOpenDialog("resolution")}>
-                  Modifier
-                </Button>
               </li>
             </ul>
           </section>
         </div>
       </div>
 
-      {/* Dialog */}
-      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sélectionnez votre {selectedComponent.toUpperCase()}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            {getOptions().map((item) => (
-              <Button
-                key={item}
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => handleSelectItem(item)}
-              >
-                {item}
-              </Button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Dialogues */}
+      <UserProfileEditDialog
+        open={userProfileDialogOpen}
+        onOpenChange={setUserProfileDialogOpen}
+        user={userData?.user || null}
+        onUserUpdated={handleUserUpdated}
+      />
+
+      <HardwareConfigDialog
+        open={hardwareConfigDialogOpen}
+        onOpenChange={setHardwareConfigDialogOpen}
+        config={userData?.config || null}
+        onConfigUpdated={handleConfigUpdated}
+      />
     </div>
   );
 };

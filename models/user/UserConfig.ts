@@ -21,7 +21,7 @@ const userConfigSchema = new mongoose.Schema({
     ref: 'Ram',
     required: true,
   },
-  screen_resolution_id: {
+  screenresolution_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ScreenResolution',
     required: true,
