@@ -23,7 +23,7 @@ interface UserConfig {
   gpu_id?: HardwareItem;
   cpu_id?: HardwareItem;
   ram_id?: HardwareItem;
-  screen_resolution_id?: HardwareItem;
+  screenresolution_id?: HardwareItem;
 }
 
 interface UserData {
@@ -204,7 +204,7 @@ const Profile = () => {
               <li className="flex items-center justify-between">
                 <span>
                   Résolution d&apos;écran: <span className="font-semibold">
-                    {userData?.config?.screen_resolution_id?.libelle || "Non configuré"}
+                    {userData?.config?.screenresolution_id?.libelle || "Non configuré"}
                   </span>
                 </span>
               </li>
