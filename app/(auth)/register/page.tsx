@@ -109,7 +109,7 @@ const Register = () => {
                         />
 
                         <Button
-                            className="w-full"
+                            className="w-full cursor-pointer"
                             size={"lg"}
                             disabled={pending}
                             variant={"default"}
@@ -118,7 +118,7 @@ const Register = () => {
                         </Button>
                     </form>
                     <Separator />
-                    <div className="flex my-2 justify-evenly mx-auto items-center">
+                    {/* <div className="flex my-2 justify-evenly mx-auto items-center">
                         <Button
                             disabled={false}
                             onClick={() => { }}
@@ -137,7 +137,7 @@ const Register = () => {
                         >
                             <FaGithub className="w-6 h-6" />
                         </Button>
-                    </div>
+                    </div> */}
                     <p className="text-center text-sm mt-2 text-muted-foreground">
                         Déjà un compte ? <Link href="/login" className="text-sky-700 ml-4 hover:underline cursor-pointer">Se connecter</Link>
                     </p>

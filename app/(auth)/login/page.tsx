@@ -84,7 +84,7 @@ const Login = () => {
                         />
 
                         <Button
-                            className="w-full"
+                            className="w-full cursor-pointer"
                             size={"lg"}
                             disabled={pending}
                             variant={"default"}
@@ -93,7 +93,7 @@ const Login = () => {
                         </Button>
                     </form>
                     <Separator />
-                    <div className="flex my-2 justify-evenly mx-auto items-center">
+                    {/* <div className="flex my-2 justify-evenly mx-auto items-center">
                         <Button
                             disabled={false}
                             onClick={() => { }}
@@ -112,7 +112,7 @@ const Login = () => {
                         >
                             <FaGithub className="w-6 h-6" />
                         </Button>
-                    </div>
+                    </div> */}
                     <p className="text-center text-sm mt-2 text-muted-foreground">
                         Pas encore de compte ? <Link href="/register" className="text-sky-700 ml-4 hover:underline cursor-pointer">S'inscrire</Link>
                     </p>

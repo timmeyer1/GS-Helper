@@ -11,7 +11,7 @@ import Link from "next/link";
 
 const UserButton = () => {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
 
     if (status === "loading") {
         return (
@@ -40,6 +40,9 @@ const UserButton = () => {
         : "?";
 
     const handleSignOut = async () => {
+        // Faire expirer la session côté client immédiatement
+        await update({ expires: new Date(0).toISOString() });
+        // Puis déconnecter côté serveur
         await signOut({ redirect: false });
         router.push("/");
     };
@@ -82,22 +85,23 @@ const UserButton = () => {
                             <span>Paramètres</span>
                         </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-                        <Link href="/admin" className="flex items-center gap-2 w-full">
-                            <LayoutDashboard className="h-4 w-4" />
-                            <span>Tableau de bord</span>
-                        </Link>
-                    </DropdownMenuItem>
+                    {session.user?.isAdmin && (
+                        <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
+                            <Link href="/admin" className="flex items-center gap-2 w-full">
+                                <LayoutDashboard className="h-4 w-4" />
+                                <span>Tableau de bord</span>
+                            </Link>
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuLogout className="cursor-pointer flex items-center gap-2">
-                        <LogOut className="h-4 w-4 text-red-500" />
-                        <span className="text-red-500" onClick={handleSignOut}>
-                            Déconnexion
-                        </span>
+                    <LogOut className="h-4 w-4 text-red-500" />
+                    <span className="text-red-500" onClick={handleSignOut}>
+                        Déconnexion
+                    </span>
                 </DropdownMenuLogout>
             </DropdownMenuContent>
-
         </DropdownMenu>
     );
 };

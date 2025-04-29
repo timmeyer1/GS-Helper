@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MonitorSmartphone, Settings2, Gamepad2 } from 'lucide-react';
 import UserButton from './user-button';
-import { SessionProvider } from 'next-auth/react';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
 import { Separator } from './ui/separator';
 import { SearchHeader } from './SearchHeader';
@@ -246,9 +245,7 @@ export default function Header() {
                 </NavigationMenu>
 
                 <div className="flex space-x-4">
-                    <SessionProvider>
-                        <UserButton />
-                    </SessionProvider>
+                    <UserButton />
                 </div>
             </nav >
         </header >

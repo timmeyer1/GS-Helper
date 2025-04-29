@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { UserRound, Loader2, Settings } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { UserRound, Loader2, Settings, LogOut } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 import { toast } from "sonner";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import UserProfileEditDialog from "@/components/user/UserProfileEditDialog";
 import HardwareConfigDialog from "@/components/user/HardwareConfigDialog";
 import { HardwareItem } from "@/components/user/HardwareSelectDialog";
@@ -32,18 +32,19 @@ interface UserData {
 }
 
 const Profile = () => {
-  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { data: session, status, update } = useSession({
+    required: true,
+    onUnauthenticated() {
+      // Cette fonction sera appelée si l'utilisateur n'est pas authentifié
+      router.replace("/login");
+    },
+  });
+
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfileDialogOpen, setUserProfileDialogOpen] = useState(false);
   const [hardwareConfigDialogOpen, setHardwareConfigDialogOpen] = useState(false);
-
-  // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      redirect("/login");
-    }
-  }, [status]);
 
   // Charger les données utilisateur
   useEffect(() => {
@@ -70,6 +71,21 @@ const Profile = () => {
     fetchUserData();
   }, [status, session]);
 
+  // Gérer la déconnexion de manière cohérente avec UserButton
+  const handleSignOut = async () => {
+    try {
+      // Faire expirer la session côté client immédiatement
+      await update({ expires: new Date(0).toISOString() });
+      // Puis déconnecter côté serveur
+      await signOut({ redirect: false });
+      // Rediriger vers la page d'accueil
+      router.push("/");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      toast.error("Une erreur est survenue lors de la déconnexion");
+    }
+  };
+
   // Gérer la mise à jour des données utilisateur
   const handleUserUpdated = (user: User) => {
     setUserData((prev) => (prev ? { ...prev, user } : null));
@@ -89,6 +105,9 @@ const Profile = () => {
     );
   }
 
+  // Si pas de session, on ne rend rien car onUnauthenticated s'en chargera
+  if (!session) return null;
+
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-10 lg:p-16">
       <div className="max-w-4xl mx-auto">
@@ -100,13 +119,23 @@ const Profile = () => {
               Mon Profil
             </h1>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setUserProfileDialogOpen(true)}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setUserProfileDialogOpen(true)}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-red-500"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Description */}
