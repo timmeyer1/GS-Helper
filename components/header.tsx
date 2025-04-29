@@ -1,35 +1,49 @@
 'use client';
 import Link from 'next/link';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronDown, MonitorSmartphone, Settings2, Menu } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { MonitorSmartphone, Settings2, Gamepad2 } from 'lucide-react';
 import UserButton from './user-button';
 import { SessionProvider } from 'next-auth/react';
-
-type Game = {
-    id: number,
-    name: string,
-    cover?: { image_id: string }
-};
+import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
+import { Separator } from './ui/separator';
+import router from 'next/router';
+import { SearchHeader } from './SearchHeader';
+import { Game } from '@/types/game';
 
 export default function Header() {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const drawerRef = useRef<HTMLDivElement>(null);
     const [games, setGames] = useState<Game[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [query, setQuery] = useState('');
+    const [searchSuggestions, setSearchSuggestions] = useState<Game[]>([]);
+    const [isTyping, setIsTyping] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const [results, setResults] = useState<Game[]>([]);
+    const [newGames, setNewGames] = useState<Game[]>([]);
+    const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [hasSearched, setHasSearched] = useState(false);
 
     // Fetch games
     useEffect(() => {
         async function fetchGames() {
+            const currentTime = Math.floor(Date.now() / 1000);
+            const sixMonthsAgo = currentTime - 60 * 60 * 24 * 180; // 6 mois en arrière
             try {
                 const response = await fetch('/api/igdb', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         endpoint: 'games',
-                        query: `where id = (1877, 119133, 1020, 1942, 25076, 215060, 136625); fields name, cover.image_id;`
+                        query: `fields name, cover.image_id, cover.id, first_release_date, rating, total_rating, hypes;
+                        where first_release_date > ${sixMonthsAgo}
+                        & first_release_date < ${currentTime}
+                        & cover != null 
+                        & hypes >= 33
+                        & platforms = (6);
+                        sort first_release_date desc;
+                        limit 7;`
                     }),
                 });
                 const data = await response.json();
@@ -44,81 +58,114 @@ export default function Header() {
         fetchGames();
     }, []);
 
-    // Gestionnaire mobile drawer
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (mobileMenuOpen && drawerRef.current && !drawerRef.current.contains(event.target as Node)) {
-                setMobileMenuOpen(false);
-            }
+
+
+    // ---------------------------------------------------------------- BARRE DE RECHERCHE ----------------------------------------------------------------
+
+    // Faire une recherche des jeux en fonction du nom
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!query.trim()) return;
+
+        // Masquer les suggestions et arrêter le chargement
+        setShowSuggestions(false);
+        setSearchSuggestions([]);
+        setIsTyping(false);
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
         }
-        if (mobileMenuOpen) document.body.style.overflow = 'hidden';
-        else document.body.style.overflow = '';
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.body.style.overflow = '';
-        };
-    }, [mobileMenuOpen]);
 
-    // Gestion escape
-    useEffect(() => {
-        function handleKeyDown(event: KeyboardEvent) {
-            if (event.key === 'Escape' && mobileMenuOpen) {
-                setMobileMenuOpen(false);
-            }
+        setIsLoading(true);
+        setHasSearched(true);
+
+        try {
+            const response = await fetch('/api/igdb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    endpoint: 'games',
+                    query: `
+                            search "${query}";
+                            fields name, cover.image_id, cover.id, parent_game, version_parent, category, platforms;
+                            where parent_game = null & version_parent = null & category != 3 & platforms = (6);
+                            limit 30;
+                        `
+                }),
+            });
+
+            const data = await response.json();
+            setResults(data);
+        } catch (error) {
+            console.error('Erreur lors de la recherche:', error);
+        } finally {
+            setIsLoading(false);
         }
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [mobileMenuOpen]);
+    };
 
-    function DropdownMenu({ label, children, width = 'w-80' }: { label: string; children: React.ReactNode; width?: string; }) {
-        const [open, setOpen] = useState(false);
-        const dropdownRef = useRef<HTMLDivElement>(null);
-        const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-        const [alignRight, setAlignRight] = useState(false);
+    // Fonction pour sélectionner une suggestion
+    const selectSuggestion = (game: Game) => {
+        setQuery(game.name);
+        setSearchSuggestions([]);
+        router.push(`/games/${game.id}`);
+    };
 
-        useEffect(() => {
-            if (open && dropdownRef.current) {
-                const rect = dropdownRef.current.getBoundingClientRect();
-                const menuWidth = parseInt(width.replace(/[^\d]/g, '') || '320');
-                setAlignRight(rect.left + menuWidth > window.innerWidth);
-            }
+    // Fonction pour ne pas rechercher les termes trop courts
+    const fetchSuggestions = async (searchTerm: string) => {
+        if (searchTerm.length < 2) return;
 
-            return () => {
-                if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            };
-        }, [open, width]);
+        try {
+            const response = await fetch('/api/igdb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    endpoint: 'games',
+                    query: `
+                        search "${searchTerm}";
+                        fields name, cover.image_id, cover.id, parent_game, version_parent, category;
+                        where parent_game = null & version_parent = null & category != 3;
+                        limit 5;
+                    `
+                }),
+            });
 
-        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+            const data = await response.json();
+            setSearchSuggestions(data);
+            setIsTyping(false);
+        } catch (error) {
+            console.error('Erreur lors de la recherche de suggestions:', error);
+            setIsTyping(false);
+        }
+    };
 
-        return (
-            <div
-                className="relative"
-                ref={dropdownRef}
-                onMouseEnter={!isMobile ? () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); setOpen(true); } : undefined}
-                onMouseLeave={!isMobile ? () => { timeoutRef.current = setTimeout(() => setOpen(false), 50); } : undefined}
-            >
-                <Button
-                    variant="ghost"
-                    className="flex items-center cursor-pointer"
-                    onClick={isMobile ? () => setOpen(!open) : undefined}
-                    aria-expanded={open}
-                    aria-haspopup="true"
-                >
-                    {label} <ChevronDown className="ml-1 h-4 w-4 transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                </Button>
-                {open && (
-                    <div
-                        className={`${isMobile ? 'relative w-full mt-2' : `absolute mt-2 ${width}`} bg-white border rounded-lg shadow-lg p-4 z-50`}
-                        style={alignRight && !isMobile ? { right: 0 } : { left: 0 }}
-                        role="menu"
-                    >
-                        {children}
-                    </div>
-                )}
-            </div>
-        );
-    }
+    // Fonction pour gérer le changement de la query (quand on écrit c'est pour éviter que les requêtes bougent bcp trop d'un coup)
+    const handleQueryChange = (value: string) => {
+        setQuery(value);
+
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+        }
+
+        if (!value.trim()) {
+            setSearchSuggestions([]);
+            setIsTyping(false);
+            setShowSuggestions(false);
+            return;
+        }
+
+        setIsTyping(true);
+        setShowSuggestions(true);
+
+        const timeout = setTimeout(() => {
+            fetchSuggestions(value);
+        }, 300);
+
+        setTypingTimeout(timeout);
+    };
 
     return (
         <header className="flex justify-between items-center p-4 mx border-b bg-white shadow-sm">
@@ -131,83 +178,80 @@ export default function Header() {
 
             {/* Desktop nav */}
             <nav className="hidden md:flex md:items-center md:space-x-6">
-                <DropdownMenu label="Jeux" width="w-[600px]">
-                    <div className="px-4 py-2 text-gray-500 text-sm">Jeux populaires :</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4 p-4">
-                        {isLoading
-                            ? Array.from({ length: 7 }).map((_, i) => (
-                                <Skeleton key={i} className="h-24 w-full rounded-lg" />
-                            ))
-                            : games.map((game) => (
-                                <Link key={game.id} href={`/games/${game.id}`} className="group">
-                                    {game.cover ? (
-                                        <img
-                                            src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
-                                            alt={game.name}
-                                            className="w-full h-auto rounded-lg mb-2 group-hover:scale-105 group-hover:shadow-xl transition-transform duration-300"
-                                        />
-                                    ) : (
-                                        <Skeleton className="h-24 w-full rounded-lg" />
-                                    )}
-                                </Link>
-                            ))}
-                    </div>
-                </DropdownMenu>
+                <NavigationMenu>
+                    <NavigationMenuList>
+                        {/* Jeux */}
+                        <NavigationMenuItem>
+                            <NavigationMenuTrigger>
+                                <Gamepad2 className="h-4 w-4 mr-2" />
+                                Jeux
+                            </NavigationMenuTrigger>
+                            <NavigationMenuContent>
+                                <ul className="w-[600px] left-0">
+                                    <div className="px-4 py-2 text-gray-500 text-sm">Jeux populaires :</div>
+                                    <li>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4 p-4">
+                                            {isLoading
+                                                ? Array.from({ length: 7 }).map((_, i) => (
+                                                    <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                                ))
+                                                : games.map((game) => (
+                                                    <Link key={game.id} href={`/games/${game.id}`} className="group">
+                                                        {game.cover ? (
+                                                            <img
+                                                                src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
+                                                                alt={game.name}
+                                                                className="w-full h-full rounded-lg mb-2 group-hover:scale-105 group-hover:shadow-xl transition-transform duration-300"
+                                                            />
+                                                        ) : (
+                                                            <Skeleton className="h-24 w-full rounded-lg" />
+                                                        )}
+                                                    </Link>
+                                                ))}
+                                        </div>
+                                    </li>
+                                </ul>
+                                <Separator className="mb-4" />
+                                <SearchHeader
+                                    query={query}
+                                    setQuery={handleQueryChange}
+                                    onSearch={handleSearch}
+                                    suggestions={searchSuggestions}
+                                    selectSuggestion={selectSuggestion}
+                                    isTyping={isTyping}
+                                    isLoading={isLoading}
+                                    showSuggestions={showSuggestions}
+                                    setShowSuggestions={setShowSuggestions}
+                                />
+                            </NavigationMenuContent>
+                        </NavigationMenuItem>
 
-                <DropdownMenu label="Scanneur" width="w-64">
-                    <Button variant="ghost" className="w-full justify-start">
-                        <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-start">
-                        <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
-                    </Button>
-                </DropdownMenu>
+                        {/* Scanneur */}
+                        <NavigationMenuItem>
+                            <NavigationMenuTrigger>
+                                <Settings2 className="h-4 w-4 mr-2" />
+                                Scanneur
+                            </NavigationMenuTrigger>
+                            <NavigationMenuContent>
+                                <ul className="w-64">
+                                    <Button variant="ghost" className="w-full justify-start cursor-pointer">
+                                        <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
+                                    </Button>
+                                    <Button variant="ghost" className="w-full justify-start cursor-pointer">
+                                        <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
+                                    </Button>
+                                </ul>
+                            </NavigationMenuContent>
+                        </NavigationMenuItem>
+                    </NavigationMenuList>
+                </NavigationMenu>
 
                 <div className="flex space-x-4">
                     <SessionProvider>
                         <UserButton />
                     </SessionProvider>
                 </div>
-            </nav>
-
-            {/* Mobile drawer */}
-            <Sheet>
-                <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="md:hidden">
-                        <Menu size={24} />
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-64">
-                    <div className="flex flex-col p-4 space-y-4">
-                        <DropdownMenu label="Jeux" width="w-full">
-                            <div className="px-4 py-2 text-gray-500 text-sm">Jeux populaires :</div>
-                            <div className="grid grid-cols-2 gap-2 p-2">
-                                {games.length > 0
-                                    ? games.map((game) => (
-                                        <Link key={game.id} href={`/games/${game.id}`} className="text-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200">
-                                            {game.name}
-                                        </Link>
-                                    ))
-                                    : Array.from({ length: 6 }).map((_, i) => (
-                                        <Skeleton key={i} className="h-10 w-full rounded-lg" />
-                                    ))}
-                            </div>
-                        </DropdownMenu>
-                        <DropdownMenu label="Scanneur" width="w-full">
-                            <Button variant="ghost" className="w-full justify-start">
-                                <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
-                            </Button>
-                            <Button variant="ghost" className="w-full justify-start">
-                                <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
-                            </Button>
-                        </DropdownMenu>
-                        <div className="flex flex-col space-y-2 pt-4 border-t">
-                            <Button className="w-full" variant="ghost">Connexion</Button>
-                            <Button className="w-full" variant="default">Inscription</Button>
-                        </div>
-                    </div>
-                </SheetContent>
-            </Sheet>
-        </header>
+            </nav >
+        </header >
     );
 }

@@ -63,38 +63,6 @@ const UserButton = () => {
                 </Button>
             </DropdownMenuTrigger>
 
-            {/* <DropdownMenuContent align="end" className="w-56 p-2">
-                <div className="flex flex-col space-y-1 p-2 mb-2 border-b">
-                    <p className="font-medium">{session.user?.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{session.user?.email}</p>
-                </div>
-                <DropdownMenuItem className="cursor-pointer flex items-center gap-2 hover:bg-gray-100">
-                    <Link href="/profile" className="flex items-center gap-2 w-full">
-                        <User className="h-4 w-4" />
-                        <span>Mon profil</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer flex items-center gap-2 hover:bg-gray-100">
-                    <Settings className="h-4 w-4" />
-                    <span>Paramètres</span>
-                </DropdownMenuItem>
-                {session.user?.isAdmin && (
-                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2 hover:bg-gray-100">
-                        <Link href="/admin" className="flex items-center gap-2 w-full">
-                            <span>Tableau de bord</span>
-                        </Link>
-                    </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator className="my-2" />
-                <DropdownMenuItem
-                    className="cursor-pointer flex items-center gap-2 text-red-500 hover:bg-red-50 hover:text-red-700 mt-2"
-                    onClick={handleSignOut}
-                >
-                    <LogOut className="h-4 w-4" />
-                    <span>Déconnexion</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent> */}
-
             <DropdownMenuContent className="w-56 p-2 mx-4">
                 <DropdownMenuLabel className="flex flex-col space-y-1 p-2 mb-2">
                     <p className="font-medium">{session.user?.name}</p>
