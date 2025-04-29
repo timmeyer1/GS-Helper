@@ -6,11 +6,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MonitorSmartphone, Settings2, Gamepad2 } from 'lucide-react';
 import UserButton from './user-button';
 import { SessionProvider } from 'next-auth/react';
-import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
+import { NavigationMenu, NavigationMenuItem, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
 import { Separator } from './ui/separator';
-import router from 'next/router';
 import { SearchHeader } from './SearchHeader';
 import { Game } from '@/types/game';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
     const [games, setGames] = useState<Game[]>([]);
@@ -19,9 +19,8 @@ export default function Header() {
     const [searchSuggestions, setSearchSuggestions] = useState<Game[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
-
+    const router = useRouter();
     const [results, setResults] = useState<Game[]>([]);
-    const [newGames, setNewGames] = useState<Game[]>([]);
     const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
 
@@ -182,7 +181,7 @@ export default function Header() {
                     <NavigationMenuList>
                         {/* Jeux */}
                         <NavigationMenuItem>
-                            <NavigationMenuTrigger>
+                            <NavigationMenuTrigger className="cursor-pointer">
                                 <Gamepad2 className="h-4 w-4 mr-2" />
                                 Jeux
                             </NavigationMenuTrigger>
@@ -228,7 +227,7 @@ export default function Header() {
 
                         {/* Scanneur */}
                         <NavigationMenuItem>
-                            <NavigationMenuTrigger>
+                            <NavigationMenuTrigger className="cursor-pointer">
                                 <Settings2 className="h-4 w-4 mr-2" />
                                 Scanneur
                             </NavigationMenuTrigger>
