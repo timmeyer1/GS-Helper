@@ -180,7 +180,7 @@ const HardwareConfigDialog = ({
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mémoire RAM</Label>
-                  <p className="text-sm font-medium text-black">
+                  <p className="text-sm text-gray-500">
                     {selectedConfig.ram?.libelle || "Non sélectionné"}
                     {selectedConfig.ram?.type && (
                       <span className="text-gray-500 italic font-normal">
@@ -202,7 +202,7 @@ const HardwareConfigDialog = ({
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Résolution d'écran</Label>
-                  <p className="text-sm font-medium text-black">
+                  <p className="text-sm text-gray-500">
                     {selectedConfig.screenresolution?.libelle || "Non sélectionné"}
                     {(selectedConfig.screenresolution?.width &&
                       selectedConfig.screenresolution?.height &&

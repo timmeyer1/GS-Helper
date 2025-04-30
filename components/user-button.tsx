@@ -73,31 +73,31 @@ const UserButton = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-                        <Link href="/profile" className="flex items-center gap-2 w-full">
+                    <Link href="/profile" className="flex items-center gap-2">
+                        <DropdownMenuItem className="cursor-pointer flex items-center gap-2 w-full">
                             <User className="h-4 w-4" />
                             <span>Mon profil</span>
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-                        <Link href="/settings" className="flex items-center gap-2 w-full">
+                        </DropdownMenuItem>
+                    </Link>
+                    <Link href="/settings" className="flex items-center gap-2">
+                        <DropdownMenuItem className="cursor-pointer flex items-center gap-2 w-full">
                             <Settings className="h-4 w-4" />
                             <span>Paramètres</span>
-                        </Link>
-                    </DropdownMenuItem>
+                        </DropdownMenuItem>
+                    </Link>
                     {session.user?.isAdmin && (
-                        <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-                            <Link href="/admin" className="flex items-center gap-2 w-full">
+                        <Link href="/admin" className="flex items-center gap-2">
+                            <DropdownMenuItem className="cursor-pointer flex items-center gap-2 w-full">
                                 <LayoutDashboard className="h-4 w-4" />
                                 <span>Tableau de bord</span>
-                            </Link>
-                        </DropdownMenuItem>
+                            </DropdownMenuItem>
+                        </Link>
                     )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuLogout className="cursor-pointer flex items-center gap-2">
+                <DropdownMenuLogout className="cursor-pointer flex items-center gap-2" onClick={handleSignOut}>
                     <LogOut className="h-4 w-4 text-red-500" />
-                    <span className="text-red-500" onClick={handleSignOut}>
+                    <span className="text-red-500">
                         Déconnexion
                     </span>
                 </DropdownMenuLogout>

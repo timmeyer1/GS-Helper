@@ -1,4 +1,3 @@
-// app/api/hardware/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Gpu from "@/models/hardware/gpu";

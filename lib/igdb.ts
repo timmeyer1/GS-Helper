@@ -1,4 +1,3 @@
-// lib/igdb.ts
 import axios from 'axios';
 
 // Interface pour la réponse d'authentification Twitch
