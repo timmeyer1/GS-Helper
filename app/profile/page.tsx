@@ -1,10 +1,9 @@
-// app/profile/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { UserRound, Loader2, Settings, LogOut } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+import { UserRound, Loader2, Settings, LogOut, UserRoundCog } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import UserProfileEditDialog from "@/components/user/UserProfileEditDialog";
@@ -71,20 +70,20 @@ const Profile = () => {
     fetchUserData();
   }, [status, session]);
 
-  // Gérer la déconnexion de manière cohérente avec UserButton
-  const handleSignOut = async () => {
-    try {
-      // Faire expirer la session côté client immédiatement
-      await update({ expires: new Date(0).toISOString() });
-      // Puis déconnecter côté serveur
-      await signOut({ redirect: false });
-      // Rediriger vers la page d'accueil
-      router.push("/");
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      toast.error("Une erreur est survenue lors de la déconnexion");
-    }
-  };
+  // // Gérer la déconnexion de manière cohérente avec UserButton
+  // const handleSignOut = async () => {
+  //   try {
+  //     // Faire expirer la session côté client immédiatement
+  //     await update({ expires: new Date(0).toISOString() });
+  //     // Puis déconnecter côté serveur
+  //     await signOut({ redirect: false });
+  //     // Rediriger vers la page d'accueil
+  //     router.push("/");
+  //   } catch (error) {
+  //     console.error("Erreur lors de la déconnexion:", error);
+  //     toast.error("Une erreur est survenue lors de la déconnexion");
+  //   }
+  // };
 
   // Gérer la mise à jour des données utilisateur
   const handleUserUpdated = (user: User) => {
@@ -119,23 +118,6 @@ const Profile = () => {
               Mon Profil
             </h1>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setUserProfileDialogOpen(true)}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="text-red-500"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
 
         {/* Description */}
@@ -148,6 +130,15 @@ const Profile = () => {
           <section className="pb-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl sm:text-2xl font-semibold">Informations personnelles</h2>
+              <Button
+                className="cursor-pointer"
+                variant="outline"
+                size="sm"
+                onClick={() => setUserProfileDialogOpen(true)}
+              >
+                <UserRoundCog className="h-4 w-4 mr-1" />
+                Modifier les informations
+              </Button>
             </div>
             {userData?.user ? (
               <div className="space-y-2">
@@ -161,6 +152,9 @@ const Profile = () => {
                   <span className="font-semibold">Statut:</span>{" "}
                   {userData.user.isAdmin ? "Administrateur" : "Utilisateur"}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Les informations peuvent prendre effet après une reconnexion.
+                </p>
               </div>
             ) : (
               <p className="text-gray-500">Information utilisateur non disponible</p>
@@ -172,10 +166,12 @@ const Profile = () => {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl sm:text-2xl font-semibold">Ma Configuration PC</h2>
               <Button
+                className="cursor-pointer"
                 variant="outline"
                 size="sm"
                 onClick={() => setHardwareConfigDialogOpen(true)}
               >
+                <Settings className="h-4 w-4 mr-1" />
                 Modifier la configuration
               </Button>
             </div>
@@ -198,6 +194,11 @@ const Profile = () => {
                 <span>
                   Mémoire RAM: <span className="font-semibold">
                     {userData?.config?.ram_id?.libelle || "Non configuré"}
+                    {userData?.config?.ram_id?.type && (
+                      <span className="text-gray-500 italic font-normal">
+                        {" "}({userData.config.ram_id.type})
+                      </span>
+                    )}
                   </span>
                 </span>
               </li>
@@ -205,6 +206,13 @@ const Profile = () => {
                 <span>
                   Résolution d&apos;écran: <span className="font-semibold">
                     {userData?.config?.screenresolution_id?.libelle || "Non configuré"}
+                    {(userData?.config?.screenresolution_id?.width &&
+                      userData?.config?.screenresolution_id?.height &&
+                      userData?.config?.screenresolution_id?.aspectRatio) && (
+                        <span className="text-gray-500 italic font-normal">
+                          {" "}({userData.config.screenresolution_id.width}x{userData.config.screenresolution_id.height} - {userData.config.screenresolution_id.aspectRatio})
+                        </span>
+                      )}
                   </span>
                 </span>
               </li>

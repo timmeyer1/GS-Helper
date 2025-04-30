@@ -44,7 +44,7 @@ const HardwareConfigDialog = ({
     ram: config?.ram_id,
     screenresolution: config?.screenresolution_id,
   });
-  
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hardwareDialogOpen, setHardwareDialogOpen] = useState(false);
@@ -78,14 +78,14 @@ const HardwareConfigDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!currentPassword) {
-      toast.error("Veuillez entrer votre mot de passe pour confirmer les modifications");
-      return;
-    }
-    
+
+    // if (!currentPassword) {
+    //   toast.error("Veuillez entrer votre mot de passe pour confirmer les modifications");
+    //   return;
+    // }
+
     setIsLoading(true);
-    
+
     try {
       const response = await fetch("/api/user/config", {
         method: "PUT",
@@ -100,14 +100,14 @@ const HardwareConfigDialog = ({
           currentPassword,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Erreur lors de la mise à jour de la configuration");
       }
-      
+
       const data = await response.json() as ApiResponse;
-      
+
       toast.success("Configuration matérielle mise à jour avec succès");
       onConfigUpdated(data.config);
       onOpenChange(false);
@@ -180,8 +180,13 @@ const HardwareConfigDialog = ({
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mémoire RAM</Label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm font-medium text-black">
                     {selectedConfig.ram?.libelle || "Non sélectionné"}
+                    {selectedConfig.ram?.type && (
+                      <span className="text-gray-500 italic font-normal">
+                        {" "}({selectedConfig.ram.type})
+                      </span>
+                    )}
                   </p>
                 </div>
                 <Button
@@ -197,8 +202,15 @@ const HardwareConfigDialog = ({
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Résolution d'écran</Label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm font-medium text-black">
                     {selectedConfig.screenresolution?.libelle || "Non sélectionné"}
+                    {(selectedConfig.screenresolution?.width &&
+                      selectedConfig.screenresolution?.height &&
+                      selectedConfig.screenresolution?.aspectRatio) && (
+                        <span className="text-gray-500 italic font-normal">
+                          {" "}({selectedConfig.screenresolution.width}x{selectedConfig.screenresolution.height} - {selectedConfig.screenresolution.aspectRatio})
+                        </span>
+                      )}
                   </p>
                 </div>
                 <Button
@@ -211,7 +223,7 @@ const HardwareConfigDialog = ({
                 </Button>
               </div>
 
-              <div className="mt-4">
+              {/* <div className="mt-4">
                 <Label htmlFor="current-password">Mot de passe actuel</Label>
                 <Input
                   id="current-password"
@@ -223,7 +235,7 @@ const HardwareConfigDialog = ({
                 <p className="text-xs text-gray-500 mt-1">
                   Votre mot de passe est requis pour confirmer ces modifications
                 </p>
-              </div>
+              </div> */}
             </div>
 
             <DialogFooter>

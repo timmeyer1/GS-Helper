@@ -104,7 +104,7 @@ const UserProfileEditDialog = ({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Nom</Label>
+            <Label className="mb-3" htmlFor="name">Nom</Label>
             <Input
               id="name"
               value={name}
@@ -114,7 +114,7 @@ const UserProfileEditDialog = ({
           </div>
 
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label className="mb-3" htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -128,7 +128,7 @@ const UserProfileEditDialog = ({
           </div>
 
           <div>
-            <Label htmlFor="password">Nouveau mot de passe</Label>
+            <Label className="mb-3" htmlFor="password">Nouveau mot de passe</Label>
             <Input
               id="password"
               type="password"
@@ -141,7 +141,7 @@ const UserProfileEditDialog = ({
           </div>
 
           <div>
-            <Label htmlFor="confirm-password">Confirmer le nouveau mot de passe</Label>
+            <Label className="mb-3" htmlFor="confirm-password">Confirmer le nouveau mot de passe</Label>
             <Input
               id="confirm-password"
               type="password"
@@ -151,7 +151,7 @@ const UserProfileEditDialog = ({
           </div>
 
           <div className="pt-4 border-t border-gray-200">
-            <Label htmlFor="current-password" className="text-red-500">
+            <Label className="mb-3" htmlFor="current-password">
               Mot de passe actuel (obligatoire)
             </Label>
             <Input

@@ -25,21 +25,21 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    // Vérifier le mot de passe actuel
-    if (!currentPassword || !user.password) {
-      return NextResponse.json(
-        { error: "Mot de passe requis pour mettre à jour la configuration" },
-        { status: 400 }
-      );
-    }
+    // // Vérifier le mot de passe actuel
+    // if (!currentPassword || !user.password) {
+    //   return NextResponse.json(
+    //     { error: "Mot de passe requis pour mettre à jour la configuration" },
+    //     { status: 400 }
+    //   );
+    // }
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: "Mot de passe incorrect" },
-        { status: 400 }
-      );
-    }
+    // const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    // if (!isPasswordValid) {
+    //   return NextResponse.json(
+    //     { error: "Mot de passe incorrect" },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Chercher une configuration existante ou en créer une nouvelle
     let userConfig = await UserConfig.findOne({ user_id: user._id });

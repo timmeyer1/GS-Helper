@@ -39,7 +39,7 @@ const Login = () => {
             router.push("/");
             toast.success("Connexion effectuée")
         } else if (res?.status === 401) {
-            setError("Invalid Credentials");
+            setError("Ce compte n'existe pas ou le mot de passe est incorrect");
             setPending(false)
         } else {
             setError("Quelque chose s'est mal passé...");
