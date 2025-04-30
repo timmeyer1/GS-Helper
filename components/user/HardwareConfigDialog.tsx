@@ -147,7 +147,7 @@ const HardwareConfigDialog = ({
                 <div>
                   <Label>Carte graphique</Label>
                   <p className="text-sm text-gray-500">
-                    {selectedConfig.gpu?.libelle || "Non sélectionné"}
+                    {selectedConfig.gpu?.libelle || " "}
                   </p>
                 </div>
                 <Button
@@ -164,7 +164,7 @@ const HardwareConfigDialog = ({
                 <div>
                   <Label>Processeur</Label>
                   <p className="text-sm text-gray-500">
-                    {selectedConfig.cpu?.libelle || "Non sélectionné"}
+                    {selectedConfig.cpu?.libelle || " "}
                   </p>
                 </div>
                 <Button
@@ -181,7 +181,7 @@ const HardwareConfigDialog = ({
                 <div>
                   <Label>Mémoire RAM</Label>
                   <p className="text-sm text-gray-500">
-                    {selectedConfig.ram?.libelle || "Non sélectionné"}
+                    {selectedConfig.ram?.libelle || " "}
                     {selectedConfig.ram?.type && (
                       <span className="text-gray-500 italic font-normal">
                         {" "}({selectedConfig.ram.type})
@@ -203,7 +203,7 @@ const HardwareConfigDialog = ({
                 <div>
                   <Label>Résolution d'écran</Label>
                   <p className="text-sm text-gray-500">
-                    {selectedConfig.screenresolution?.libelle || "Non sélectionné"}
+                    {selectedConfig.screenresolution?.libelle || " "}
                     {(selectedConfig.screenresolution?.width &&
                       selectedConfig.screenresolution?.height &&
                       selectedConfig.screenresolution?.aspectRatio) && (

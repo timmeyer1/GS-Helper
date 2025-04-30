@@ -1,20 +1,19 @@
-import { ArrowLeft, Shield, FileText } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function TermsAndConditions() {
     return (
-        <div className="min-h-screen p-4 sm:p-6 md:p-10 lg:p-16">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
+            <div className="container mx-auto">
                 <div className="mb-8">
-                    
+
                     <div className="flex items-center mb-6">
-                        <Shield className="h-8 w-8 text-purple-600 mr-3" />
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
                             Conditions Générales
                         </h1>
                     </div>
-                    
+
                     <p className="text-base sm:text-lg text-gray-700 mb-8">
                         Ces conditions générales régissent l'utilisation de GS Helper, l'outil qui vous aide à optimiser vos paramètres de jeu.
                     </p>

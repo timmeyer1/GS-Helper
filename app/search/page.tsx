@@ -181,57 +181,59 @@ export default function SearchPage() {
 
 
     return (
-        <div className="min-h-screen p-4 sm:p-6 md:p-10 lg:p-16">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8">Rechercher un jeu</h1>
+        <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
+            <div className="container mx-auto">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8">Rechercher un jeu</h1>
 
-            <SearchBar
-                query={query}
-                setQuery={handleQueryChange}
-                onSearch={handleSearch}
-                suggestions={searchSuggestions}
-                selectSuggestion={selectSuggestion}
-                isTyping={isTyping}
-                isLoading={isLoading}
-                showSuggestions={showSuggestions}
-                setShowSuggestions={setShowSuggestions}
-            />
+                <SearchBar
+                    query={query}
+                    setQuery={handleQueryChange}
+                    onSearch={handleSearch}
+                    suggestions={searchSuggestions}
+                    selectSuggestion={selectSuggestion}
+                    isTyping={isTyping}
+                    isLoading={isLoading}
+                    showSuggestions={showSuggestions}
+                    setShowSuggestions={setShowSuggestions}
+                />
 
-            {results.length > 0 ? (
-                <div>
-                    <h2 className="text-xl sm:text-2xl font-semibold mb-4">Résultats ({results.length})</h2>
+                {results.length > 0 ? (
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-semibold mb-4">Résultats ({results.length})</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            {results.map(game => (
+                                <GameCard key={game.id} game={game} />
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    hasSearched && results.length === 0 && !isLoading && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">Aucun résultat trouvé pour "{query}"</p>
+                        </div>
+                    )
+                )}
+
+                {/* Affichage des nouveaux jeux */}
+                <div className="mt-16">
+                    <h2 className="text-xl sm:text-2xl font-semibold mb-4">Nouveautés</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        {results.map(game => (
-                            <GameCard key={game.id} game={game} />
-                        ))}
+                        {newGames.length > 0 ? (
+                            newGames.map(game => (
+                                <GameCard key={game.id} game={game} />
+                            ))
+                        ) : (
+                            [...Array(10)].map((_, i) => (
+                                <div key={i} className="space-y-2">
+                                    <Skeleton
+                                        className="bg-gray-200 rounded-lg"
+                                        style={{ height: 256 }}
+                                    />
+                                    <Skeleton className="h-4 w-[90%]" />
+                                </div>
+                            ))
+                        )}
                     </div>
-                </div>
-            ) : (
-                hasSearched && results.length === 0 && !isLoading && (
-                    <div className="text-center py-8">
-                        <p className="text-gray-500">Aucun résultat trouvé pour "{query}"</p>
-                    </div>
-                )
-            )}
-
-            {/* Affichage des nouveaux jeux */}
-            <div className="mt-16">
-                <h2 className="text-xl sm:text-2xl font-semibold mb-4">Nouveautés</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {newGames.length > 0 ? (
-                        newGames.map(game => (
-                            <GameCard key={game.id} game={game} />
-                        ))
-                    ) : (
-                        [...Array(10)].map((_, i) => (
-                            <div key={i} className="space-y-2">
-                                <Skeleton
-                                    className="bg-gray-200 rounded-lg"
-                                    style={{ height: 256 }}
-                                />
-                                <Skeleton className="h-4 w-[90%]" />
-                            </div>
-                        ))
-                    )}
                 </div>
             </div>
         </div>

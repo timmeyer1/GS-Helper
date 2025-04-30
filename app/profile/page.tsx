@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { UserRound, Loader2, Settings, LogOut, UserRoundCog } from "lucide-react";
+import { Loader2, Settings, UserRoundCog } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import UserProfileEditDialog from "@/components/user/UserProfileEditDialog";
 import HardwareConfigDialog from "@/components/user/HardwareConfigDialog";
 import { HardwareItem } from "@/components/user/HardwareSelectDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Types pour les données utilisateur
 interface User {
@@ -32,10 +33,9 @@ interface UserData {
 
 const Profile = () => {
   const router = useRouter();
-  const { data: session, status, update } = useSession({
+  const { data: session, status } = useSession({
     required: true,
     onUnauthenticated() {
-      // Cette fonction sera appelée si l'utilisateur n'est pas authentifié
       router.replace("/login");
     },
   });
@@ -70,21 +70,6 @@ const Profile = () => {
     fetchUserData();
   }, [status, session]);
 
-  // // Gérer la déconnexion de manière cohérente avec UserButton
-  // const handleSignOut = async () => {
-  //   try {
-  //     // Faire expirer la session côté client immédiatement
-  //     await update({ expires: new Date(0).toISOString() });
-  //     // Puis déconnecter côté serveur
-  //     await signOut({ redirect: false });
-  //     // Rediriger vers la page d'accueil
-  //     router.push("/");
-  //   } catch (error) {
-  //     console.error("Erreur lors de la déconnexion:", error);
-  //     toast.error("Une erreur est survenue lors de la déconnexion");
-  //   }
-  // };
-
   // Gérer la mise à jour des données utilisateur
   const handleUserUpdated = (user: User) => {
     setUserData((prev) => (prev ? { ...prev, user } : null));
@@ -95,8 +80,38 @@ const Profile = () => {
     setUserData((prev) => (prev ? { ...prev, config } : null));
   };
 
-  // Afficher un écran de chargement
-  if (loading || status === "loading") {
+  // Composant pour le skeleton loader des informations utilisateur
+  const UserInfoSkeleton = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-32" />
+      </div>
+      <div className="flex justify-between">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-48" />
+      </div>
+      <div className="flex justify-between">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-28" />
+      </div>
+    </div>
+  );
+
+  // Composant pour le skeleton loader de la configuration PC
+  const HardwareConfigSkeleton = () => (
+    <div className="space-y-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="flex justify-between">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+      ))}
+    </div>
+  );
+
+  // Afficher un écran de chargement complet pendant le chargement initial
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
@@ -108,49 +123,53 @@ const Profile = () => {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-10 lg:p-16">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
+      <div className="container mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center">
-            <UserRound className="h-8 w-8 text-purple-600 mr-3" />
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
               Mon Profil
             </h1>
           </div>
         </div>
 
         {/* Description */}
-        <p className="text-base sm:text-lg text-gray-700 mb-8">
+        <p className="text-sm sm:text-base md:text-lg text-gray-700 mb-6">
           Personnalisez votre profil et configurez votre matériel pour optimiser vos performances en jeu.
         </p>
 
         {/* Informations */}
-        <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
           <section className="pb-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xl sm:text-2xl font-semibold">Informations personnelles</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Informations personnelles</h2>
               <Button
-                className="cursor-pointer"
+                className="cursor-pointer w-full sm:w-auto"
                 variant="outline"
                 size="sm"
                 onClick={() => setUserProfileDialogOpen(true)}
               >
                 <UserRoundCog className="h-4 w-4 mr-1" />
-                Modifier les informations
+                <span>Modifier les informations</span>
               </Button>
             </div>
-            {userData?.user ? (
-              <div className="space-y-2">
-                <p className="flex justify-between">
-                  <span className="font-semibold">Nom:</span> {userData.user.name}
+
+            {loading ? (
+              <UserInfoSkeleton />
+            ) : userData?.user ? (
+              <div className="space-y-2 text-sm sm:text-base">
+                <p className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-semibold">Nom:</span>
+                  <span className="ml-0 sm:ml-2">{userData.user.name}</span>
                 </p>
-                <p className="flex justify-between">
-                  <span className="font-semibold">Email:</span> {userData.user.email}
+                <p className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-semibold">Email:</span>
+                  <span className="ml-0 sm:ml-2 break-all">{userData.user.email}</span>
                 </p>
-                <p className="flex justify-between">
-                  <span className="font-semibold">Statut:</span>{" "}
-                  {userData.user.isAdmin ? "Administrateur" : "Utilisateur"}
+                <p className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-semibold">Statut:</span>
+                  <span className="ml-0 sm:ml-2">{userData.user.isAdmin ? "Administrateur" : "Utilisateur"}</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Les informations peuvent prendre effet après une reconnexion.
@@ -163,49 +182,54 @@ const Profile = () => {
 
           {/* Configuration PC */}
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xl sm:text-2xl font-semibold">Ma Configuration PC</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Ma Configuration PC</h2>
               <Button
-                className="cursor-pointer"
+                className="cursor-pointer w-full sm:w-auto"
                 variant="outline"
                 size="sm"
                 onClick={() => setHardwareConfigDialogOpen(true)}
               >
                 <Settings className="h-4 w-4 mr-1" />
-                Modifier la configuration
+                <span>Modifier la configuration</span>
               </Button>
             </div>
-            <ul className="space-y-3">
-              <li className="flex items-center justify-between">
-                <span>
-                  Carte graphique: <span className="font-semibold">
+
+            {loading ? (
+              <HardwareConfigSkeleton />
+            ) : (
+              <ul className="space-y-3 text-sm sm:text-base">
+                <li className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-medium">Carte graphique:</span>
+                  <span className="ml-0 sm:ml-2 font-semibold">
                     {userData?.config?.gpu_id?.libelle || "Non configuré"}
                   </span>
-                </span>
-              </li>
-              <li className="flex items-center justify-between">
-                <span>
-                  Processeur: <span className="font-semibold">
+                </li>
+                <li className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-medium">Processeur:</span>
+                  <span className="ml-0 sm:ml-2 font-semibold">
                     {userData?.config?.cpu_id?.libelle || "Non configuré"}
                   </span>
-                </span>
-              </li>
-              <li className="flex items-center justify-between">
-                <span>
-                  Mémoire RAM: <span className="font-semibold">
-                    {userData?.config?.ram_id?.libelle || "Non configuré"}
+                </li>
+                <li className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-medium">Mémoire RAM:</span>
+                  <span className="ml-0 sm:ml-2">
+                    <span className="font-semibold">
+                      {userData?.config?.ram_id?.libelle || "Non configuré"}
+                    </span>
                     {userData?.config?.ram_id?.type && (
                       <span className="text-gray-500 italic font-normal">
                         {" "}({userData.config.ram_id.type})
                       </span>
                     )}
                   </span>
-                </span>
-              </li>
-              <li className="flex items-center justify-between">
-                <span>
-                  Résolution d&apos;écran: <span className="font-semibold">
-                    {userData?.config?.screenresolution_id?.libelle || "Non configuré"}
+                </li>
+                <li className="flex flex-col sm:flex-row sm:justify-between">
+                  <span className="font-medium">Résolution d&apos;écran:</span>
+                  <span className="ml-0 sm:ml-2">
+                    <span className="font-semibold">
+                      {userData?.config?.screenresolution_id?.libelle || "Non configuré"}
+                    </span>
                     {(userData?.config?.screenresolution_id?.width &&
                       userData?.config?.screenresolution_id?.height &&
                       userData?.config?.screenresolution_id?.aspectRatio) && (
@@ -214,9 +238,9 @@ const Profile = () => {
                         </span>
                       )}
                   </span>
-                </span>
-              </li>
-            </ul>
+                </li>
+              </ul>
+            )}
           </section>
         </div>
       </div>
