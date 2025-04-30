@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MonitorSmartphone, Settings2, Gamepad2, Menu, X } from 'lucide-react';
+import { MonitorSmartphone, Settings2, Gamepad2, Menu, X, Plus } from 'lucide-react';
 import UserButton from './user-button';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
 import { Separator } from './ui/separator';
@@ -200,13 +200,14 @@ export default function Header() {
                             </NavigationMenuTrigger>
                             <NavigationMenuContent>
                                 <ul className="w-[600px] left-0">
-                                    <div className="px-4 py-2 text-gray-500 text-sm">Jeux populaires :</div>
-                                    <li>
-                                        <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 p-4">
-                                            {isLoading
-                                                ? <GameCoverSkeletons />
-                                                : games.map((game) => (
-                                                    <Link key={game.id} href={`/games/${game.id}`} className="group aspect-[3/4]">
+                                    <span className="px-4 py-2 text-gray-500 text-sm font-bold">Jeux populaires :</span>
+                                    <li className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 p-2 px-4">
+                                        {isLoading ? (
+                                            <GameCoverSkeletons />
+                                        ) : (
+                                            games.map((game) => (
+                                                <Link key={game.id} href={`/games/${game.id}`} className="group aspect-[3/4]">
+                                                    <li>
                                                         {game.cover ? (
                                                             <img
                                                                 src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
@@ -216,11 +217,19 @@ export default function Header() {
                                                         ) : (
                                                             <Skeleton className="h-full w-full rounded-lg" />
                                                         )}
-                                                    </Link>
-                                                ))}
-                                        </div>
+                                                    </li>
+                                                </Link>
+                                            ))
+                                        )}
                                     </li>
                                 </ul>
+                                <div className="px-4 pb-3 text-gray-500 text-sm flex items-center">
+                                    <Link href="/search" className="flex items-center hover:bg-gray-100 hover:text-gray-700 p-1">
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        <span>Voir plus</span>
+                                    </Link>
+                                </div>
+
                                 <Separator className="mb-4" />
                                 <SearchHeader
                                     query={query}
@@ -264,7 +273,7 @@ export default function Header() {
             {/* Mobile Navigation avec Sheet */}
             <div className="flex items-center space-x-2 md:hidden">
                 <UserButton />
-                
+
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                     <SheetTrigger asChild>
                         <Button variant="ghost" size="icon" className="md:hidden">
@@ -291,21 +300,21 @@ export default function Header() {
                                     setShowSuggestions={setShowSuggestions}
                                 />
                             </div>
-                            
+
                             <Separator />
 
                             {/* Popular games */}
                             <div>
                                 <h3 className="font-medium mb-3">Jeux populaires</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {isLoading 
+                                    {isLoading
                                         ? Array.from({ length: 6 }).map((_, i) => (
                                             <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
                                         ))
                                         : games.slice(0, 6).map((game) => (
-                                            <Link 
-                                                key={game.id} 
-                                                href={`/games/${game.id}`} 
+                                            <Link
+                                                key={game.id}
+                                                href={`/games/${game.id}`}
                                                 className="group aspect-[3/4]"
                                                 onClick={() => setMobileMenuOpen(false)}
                                             >
@@ -332,20 +341,20 @@ export default function Header() {
                                     Scanneur
                                 </h3>
                                 <div className="space-y-2">
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         className="w-full justify-start"
                                         onClick={() => setMobileMenuOpen(false)}
                                     >
-                                        <MonitorSmartphone className="mr-2 h-5 w-5" /> 
+                                        <MonitorSmartphone className="mr-2 h-5 w-5" />
                                         Détection automatique
                                     </Button>
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         className="w-full justify-start"
                                         onClick={() => setMobileMenuOpen(false)}
                                     >
-                                        <Settings2 className="mr-2 h-5 w-5" /> 
+                                        <Settings2 className="mr-2 h-5 w-5" />
                                         Choisir manuellement
                                     </Button>
                                 </div>
