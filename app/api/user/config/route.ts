@@ -5,6 +5,12 @@ import User from "@/models/user/User";
 import UserConfig from "@/models/user/UserConfig";
 import bcrypt from "bcryptjs";
 
+// Importer tous les modèles nécessaires pour le populate
+import Gpu from "@/models/hardware/gpu";
+import Cpu from "@/models/hardware/cpu";
+import Ram from "@/models/hardware/ram";
+import ScreenResolution from "@/models/hardware/screenresolution";
+
 // API pour mettre à jour la configuration matérielle de l'utilisateur
 export async function PUT(req: NextRequest) {
   try {
@@ -18,6 +24,14 @@ export async function PUT(req: NextRequest) {
     const { gpuId, cpuId, ramId, screenResolutionId, currentPassword } = data;
 
     await connectToDatabase();
+    
+    // S'assurer que les modèles sont bien importés avant d'utiliser UserConfig
+    console.log('Modèles chargés:', 
+      !!Gpu.modelName, 
+      !!Cpu.modelName, 
+      !!Ram.modelName, 
+      !!ScreenResolution.modelName
+    );
     
     const user = await User.findOne({ email: session.user.email });
     
