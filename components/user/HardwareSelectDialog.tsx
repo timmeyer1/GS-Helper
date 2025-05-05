@@ -14,8 +14,8 @@ export interface HardwareItem {
   generation?: string;
   type?: string;
   range?: string;
-  width?: string;
-  height?: string;
+  width?: number;
+  height?: number;
   aspectRatio?: string;
 }
 

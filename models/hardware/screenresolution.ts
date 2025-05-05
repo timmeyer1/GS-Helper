@@ -2,8 +2,8 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 interface IScreenResolution extends Document {
   libelle: string;
-  width: string;
-  height: string;
+  width: number;
+  height: number;
   aspectRatio: string;
 }
 
@@ -13,11 +13,11 @@ const ScreenResolutionSchema: Schema<IScreenResolution> = new mongoose.Schema({
     required: true,
   },
   width: {
-    type: String,
+    type: Number,
     required: true,
   },
   height: {
-    type: String,
+    type: Number,
     required: true,
   },
   aspectRatio: {

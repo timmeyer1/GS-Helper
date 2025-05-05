@@ -1,373 +1,154 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
+import { useSession } from "next-auth/react";
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
+import GuestHardwareConfig from './user/GuestHardwareConfig';
 
+// Types
 type Game = {
     id: number;
     name: string;
     summary?: string;
-    cover?: { id: number; image_id: string };
+    cover?: { image_id: string };
     screenshots?: Array<{ id: number; image_id: string }>;
-    genres?: Array<{ id: number; name: string }>;
-    platforms?: Array<{ id: number; name: string }>;
-    release_dates?: Array<{ id: number; date: number; human: string }>;
-    rating?: number;
-    graphics_demand?: number; // 1-10, où 10 est très exigeant
+    release_dates?: Array<{ human: string }>;
+    graphics_demand?: number;
 };
 
 type Section = 'config' | 'screenshots';
-type OptimizationMode = 'visuel' | 'performances';
 
-// Base de données de jeux avec leur niveau d'exigence graphique (1-10)
-const gameGraphicsDemands: Record<number, number> = {
-    1: 3, // Valorant - peu exigeant
-    2: 9, // Red Dead Redemption 2 - très exigeant
-    3: 7, // Cyberpunk 2077 - exigeant
-    4: 5, // Fortnite - modérément exigeant
-};
+// Interface pour les composants matériels
+interface HardwareItem {
+    id: string;
+    libelle: string;
+    type?: string;
+    width?: number;
+    height?: number;
+    aspectRatio?: string;
+    brand?: string;
+    generation?: string;
+    range?: string;
+}
 
-// Composants PC disponibles
-const gpuOptions = [
-    { value: 'rtx4090', label: 'NVIDIA RTX 4090' },
-    { value: 'rtx4080', label: 'NVIDIA RTX 4080' },
-    { value: 'rtx3080', label: 'NVIDIA RTX 3080' },
-    { value: 'rtx3070', label: 'NVIDIA RTX 3070' },
-    { value: 'rtx3060', label: 'NVIDIA RTX 3060' },
-    { value: 'rx7900xt', label: 'AMD Radeon RX 7900 XT' },
-    { value: 'rx6900xt', label: 'AMD Radeon RX 6900 XT' },
-    { value: 'rx6800xt', label: 'AMD Radeon RX 6800 XT' },
-    { value: 'rx6700xt', label: 'AMD Radeon RX 6700 XT' },
-];
-
-const cpuOptions = [
-    { value: 'i9-13900k', label: 'Intel Core i9-13900K' },
-    { value: 'i7-13700k', label: 'Intel Core i7-13700K' },
-    { value: 'i5-13600k', label: 'Intel Core i5-13600K' },
-    { value: 'i9-12900k', label: 'Intel Core i9-12900K' },
-    { value: 'i7-12700k', label: 'Intel Core i7-12700K' },
-    { value: 'ryzen9-7950x', label: 'AMD Ryzen 9 7950X' },
-    { value: 'ryzen7-7700x', label: 'AMD Ryzen 7 7700X' },
-    { value: 'ryzen5-7600x', label: 'AMD Ryzen 5 7600X' },
-    { value: 'ryzen9-5950x', label: 'AMD Ryzen 9 5950X' },
-];
-
-const ramOptions = [
-    { value: '32gb', label: '32 Go' },
-    { value: '16gb', label: '16 Go' },
-    { value: '8gb', label: '8 Go' },
-];
-
-// Options pour la résolution d'écran
-const resolutionOptions = [
-    { value: '1080p', label: '1920 x 1080 (Full HD)' },
-    { value: '1440p', label: '2560 x 1440 (2K / QHD)' },
-    { value: '4k', label: '3840 x 2160 (4K / UHD)' },
-    { value: '720p', label: '1280 x 720 (HD)' },
-    { value: 'ultrawide', label: '3440 x 1440 (Ultrawide)' },
-];
+// Interface pour la config utilisateur
+interface UserConfig {
+    gpu_id?: HardwareItem;
+    cpu_id?: HardwareItem;
+    ram_id?: HardwareItem;
+    screenresolution_id?: HardwareItem;
+}
 
 export function GameDetail({ game }: { game: Game }) {
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [activeSection, setActiveSection] = useState<Section>('config');
-    const [optimizationMode, setOptimizationMode] = useState<OptimizationMode>('visuel');
-    const [selectedGPU, setSelectedGPU] = useState<string>('');
-    const [selectedCPU, setSelectedCPU] = useState<string>('');
-    const [selectedRAM, setSelectedRAM] = useState<string>('');
-    const [selectedResolution, setSelectedResolution] = useState<string>('');
-    const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
+    const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [hardwareOptions, setHardwareOptions] = useState<{
+        gpus: HardwareItem[];
+        cpus: HardwareItem[];
+        rams: HardwareItem[];
+        resolutions: HardwareItem[];
+    }>({
+        gpus: [],
+        cpus: [],
+        rams: [],
+        resolutions: []
+    });
 
+    // URL de la couverture du jeu
     const coverUrl = game.cover
         ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`
         : '/placeholder-game.jpg';
 
-    // Obtenir la difficulté graphique du jeu actuel
-    const getGameDifficulty = (): number => {
-        return game.graphics_demand || gameGraphicsDemands[game.id] || 5;
-    };
+    // Récupération de la configuration de l'utilisateur
+    useEffect(() => {
+        const fetchUserConfig = async () => {
+            if (status === "authenticated" && session) {
+                setLoading(true);
+                setError(null);
 
-    // Fonction pour générer des recommandations basées sur les composants et le mode
-    const generateRecommendations = () => {
-        if (!selectedGPU || !selectedCPU || !selectedRAM || !selectedResolution) {
-            return null;
-        }
+                try {
+                    const response = await fetch("/api/user");
+                    if (!response.ok) {
+                        throw new Error("Erreur lors de la récupération des données utilisateur");
+                    }
 
-        const gameDifficulty = getGameDifficulty();
-        const gpuTier = getGPUTier(selectedGPU);
-        const cpuTier = getCPUTier(selectedCPU);
-        const ramTier = getRAMTier(selectedRAM);
-        const difficultyFactor = calculateDifficultyFactor(gameDifficulty);
+                    const data = await response.json();
+                    setUserConfig(data.config);
+                } catch (err) {
+                    console.error("Erreur:", err);
+                    setError("Impossible de charger votre configuration");
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
 
-        if (optimizationMode === 'visuel') {
-            return {
-                resolution: getVisualResolution(gpuTier, difficultyFactor, selectedResolution),
-                qualite: getVisualQuality(gpuTier, cpuTier, difficultyFactor),
-                fps: getVisualFPS(gpuTier, cpuTier, ramTier, difficultyFactor),
-                aaMode: getVisualAA(gpuTier, difficultyFactor),
-                shadows: getVisualShadows(gpuTier, cpuTier, difficultyFactor),
-                textures: getVisualTextures(gpuTier, ramTier, difficultyFactor),
-                drawDistance: getVisualDrawDistance(gpuTier, difficultyFactor),
-                reflections: getVisualReflections(gpuTier, difficultyFactor),
-                ambient: getVisualAmbient(gpuTier, cpuTier, difficultyFactor),
-            };
-        } else {
-            return {
-                resolution: getPerformanceResolution(gpuTier, difficultyFactor, selectedResolution),
-                qualite: getPerformanceQuality(gpuTier, cpuTier, difficultyFactor),
-                fps: getPerformanceFPS(gpuTier, cpuTier, difficultyFactor),
-                aaMode: getPerformanceAA(gpuTier, difficultyFactor),
-                shadows: getPerformanceShadows(gpuTier, difficultyFactor),
-                textures: getPerformanceTextures(ramTier, difficultyFactor),
-                drawDistance: getPerformanceDrawDistance(difficultyFactor),
-                reflections: getPerformanceReflections(difficultyFactor),
-                ambient: getPerformanceAmbient(difficultyFactor),
-            };
-        }
-    };
+        fetchUserConfig();
+    }, [status, session]);
 
-    // Calcul du facteur de difficulté
-    const calculateDifficultyFactor = (difficulty: number): number => {
-        return Math.max(0, 1 - (difficulty / 10));
-    };
+    // Récupération des options de matériel
+    useEffect(() => {
+        const fetchHardwareOptions = async () => {
+            try {
+                const [gpuRes, cpuRes, ramRes, resolutionRes] = await Promise.all([
+                    fetch("/api/hardware/gpu"),
+                    fetch("/api/hardware/cpu"),
+                    fetch("/api/hardware/ram"),
+                    fetch("/api/hardware/resolution")
+                ]);
 
-    // Fonctions d'évaluation des tiers
-    const getGPUTier = (gpu: string): number => {
-        const topTier = ['rtx4090'];
-        const highTier = ['rtx4080', 'rx7900xt'];
-        const upperMidTier = ['rtx3080', 'rx6900xt'];
-        const midTier = ['rtx3070', 'rx6800xt'];
+                if (!gpuRes.ok || !cpuRes.ok || !ramRes.ok || !resolutionRes.ok) {
+                    throw new Error("Erreur lors de la récupération des options matérielles");
+                }
 
-        if (topTier.includes(gpu)) return 4;
-        if (highTier.includes(gpu)) return 3;
-        if (upperMidTier.includes(gpu)) return 2.5;
-        if (midTier.includes(gpu)) return 2;
-        return 1;
-    };
+                const [gpus, cpus, rams, resolutions] = await Promise.all([
+                    gpuRes.json(),
+                    cpuRes.json(),
+                    ramRes.json(),
+                    resolutionRes.json()
+                ]);
 
-    const getCPUTier = (cpu: string): number => {
-        const topTier = ['i9-13900k', 'ryzen9-7950x'];
-        const highTier = ['i7-13700k', 'ryzen7-7700x', 'i9-12900k'];
-        const midTier = ['i5-13600k', 'ryzen5-7600x', 'i7-12700k', 'ryzen9-5950x'];
+                setHardwareOptions({
+                    gpus: gpus.data || [],
+                    cpus: cpus.data || [],
+                    rams: rams.data || [],
+                    resolutions: resolutions.data || []
+                });
+            } catch (err) {
+                console.error("Erreur lors de la récupération des options matérielles:", err);
+            }
+        };
 
-        if (topTier.includes(cpu)) return 4;
-        if (highTier.includes(cpu)) return 3;
-        if (midTier.includes(cpu)) return 2;
-        return 1;
-    };
+        fetchHardwareOptions();
+    }, []);
 
-    const getRAMTier = (ram: string): number => {
-        if (ram === '32gb') return 3;
-        if (ram === '16gb') return 2;
-        return 1;
-    };
-
-    // Fonctions pour le mode visuel
-    const getVisualResolution = (gpuTier: number, difficultyFactor: number, userResolution: string): string => {
-        const effectiveGpuTier = gpuTier * difficultyFactor;
-
-        if (userResolution === '4k' && effectiveGpuTier < 2.5) {
-            return '1440p (mise à l\'échelle pour 4K)';
-        }
-
-        if (userResolution === '1440p' && effectiveGpuTier < 1.5) {
-            return '1080p (mise à l\'échelle pour 1440p)';
-        }
-
-        if (userResolution === 'ultrawide' && effectiveGpuTier < 2) {
-            return '2560 x 1080 (ultrawide réduit)';
-        }
-
-        switch (userResolution) {
-            case '4k': return '3840 x 2160 (4K natif)';
-            case '1440p': return '2560 x 1440 (2K natif)';
-            case 'ultrawide': return '3440 x 1440 (Ultrawide natif)';
-            case '720p': return '1280 x 720 (HD natif)';
-            case '1080p':
-            default:
-                return '1920 x 1080 (Full HD natif)';
-        }
-    };
-
-    const getVisualQuality = (gpuTier: number, cpuTier: number, difficultyFactor: number): string => {
-        const combinedTier = ((gpuTier * 0.75) + (cpuTier * 0.25)) * difficultyFactor;
-
-        if (combinedTier >= 3) return 'Ultra';
-        if (combinedTier >= 2) return 'Élevée';
-        if (combinedTier >= 1.5) return 'Moyenne';
-        return 'Basse';
-    };
-
-    const getVisualFPS = (gpuTier: number, cpuTier: number, ramTier: number, difficultyFactor: number): string => {
-        const weightedGpu = gpuTier * 0.6;
-        const weightedCpu = cpuTier * 0.3;
-        const weightedRam = ramTier * 0.1;
-
-        const combinedTier = (weightedGpu + weightedCpu + weightedRam) * difficultyFactor;
-
-        if (combinedTier >= 3) return '60+ FPS stable';
-        if (combinedTier >= 2) return '45-60 FPS';
-        if (combinedTier >= 1.5) return '30-45 FPS';
-        return 'Sous 30 FPS (considérez réduire les paramètres)';
-    };
-
-    const getVisualAA = (gpuTier: number, difficultyFactor: number): string => {
-        const effectiveTier = gpuTier * difficultyFactor;
-
-        if (effectiveTier >= 3.5) return 'MSAA 8x ou TAA Haute Qualité';
-        if (effectiveTier >= 2.5) return 'MSAA 4x ou TAA';
-        if (effectiveTier >= 1.5) return 'FXAA ou TAA Basse Qualité';
-        return 'Désactivé ou FXAA';
-    };
-
-    const getVisualShadows = (gpuTier: number, cpuTier: number, difficultyFactor: number): string => {
-        const combinedTier = ((gpuTier * 0.7) + (cpuTier * 0.3)) * difficultyFactor;
-
-        if (combinedTier >= 3) return 'Ultra (ombres volumétriques)';
-        if (combinedTier >= 2) return 'Élevée';
-        if (combinedTier >= 1.5) return 'Moyenne';
-        return 'Basse';
-    };
-
-    const getVisualTextures = (gpuTier: number, ramTier: number, difficultyFactor: number): string => {
-        const combinedTier = ((gpuTier * 0.4) + (ramTier * 0.6)) * difficultyFactor;
-
-        if (combinedTier >= 3) return 'Ultra (4K)';
-        if (combinedTier >= 2) return 'Élevée (2K)';
-        if (combinedTier >= 1.5) return 'Moyenne (1K)';
-        return 'Basse (512px)';
-    };
-
-    const getVisualDrawDistance = (gpuTier: number, difficultyFactor: number): string => {
-        const effectiveTier = gpuTier * difficultyFactor;
-
-        if (effectiveTier >= 3) return 'Ultra';
-        if (effectiveTier >= 2) return 'Élevée';
-        if (effectiveTier >= 1.5) return 'Moyenne';
-        return 'Basse';
-    };
-
-    const getVisualReflections = (gpuTier: number, difficultyFactor: number): string => {
-        const effectiveTier = gpuTier * difficultyFactor;
-
-        if (effectiveTier >= 3.5) return 'Ray Tracing Élevé';
-        if (effectiveTier >= 2.5) return 'Ray Tracing Bas ou SSR Élevé';
-        if (effectiveTier >= 1.8) return 'SSR (Screen Space Reflections)';
-        if (effectiveTier >= 1.2) return 'Réflexions Simples';
-        return 'Désactivées';
-    };
-
-    const getVisualAmbient = (gpuTier: number, cpuTier: number, difficultyFactor: number): string => {
-        const combinedTier = ((gpuTier * 0.8) + (cpuTier * 0.2)) * difficultyFactor;
-
-        if (combinedTier >= 3) return 'Ultra (SSAO, occlusion globale)';
-        if (combinedTier >= 2) return 'Élevée (SSAO)';
-        if (combinedTier >= 1.5) return 'Moyenne (AO basique)';
-        return 'Désactivée';
-    };
-
-    // Fonctions pour le mode performances
-    const getPerformanceResolution = (gpuTier: number, difficultyFactor: number, userResolution: string): string => {
-        const effectiveGpuTier = gpuTier * difficultyFactor;
-
-        if (userResolution === '4k') {
-            if (effectiveGpuTier >= 3.5) return '3840 x 2160 (4K natif)';
-            return '1440p (mise à l\'échelle pour 4K)';
-        }
-
-        if (userResolution === '1440p') {
-            if (effectiveGpuTier >= 2.5) return '2560 x 1440 (2K natif)';
-            return '1080p (mise à l\'échelle pour 1440p)';
-        }
-
-        if (userResolution === 'ultrawide') {
-            if (effectiveGpuTier >= 3) return '3440 x 1440 (Ultrawide natif)';
-            return '2560 x 1080 (Ultrawide réduit)';
-        }
-
-        return userResolution === '720p' ? '1280 x 720 (HD natif)' : '1920 x 1080 (Full HD natif)';
-    };
-
-    const getPerformanceQuality = (gpuTier: number, cpuTier: number, difficultyFactor: number): string => {
-        const combinedTier = ((gpuTier * 0.75) + (cpuTier * 0.25)) * difficultyFactor;
-
-        if (combinedTier >= 3.5) return 'Élevée';
-        if (combinedTier >= 2.5) return 'Moyenne';
-        return 'Basse';
-    };
-
-    const getPerformanceFPS = (gpuTier: number, cpuTier: number, difficultyFactor: number): string => {
-        const combinedTier = ((gpuTier * 0.6) + (cpuTier * 0.4)) * difficultyFactor;
-
-        if (combinedTier >= 3.5) return '144+ FPS';
-        if (combinedTier >= 2.5) return '100-120 FPS';
-        if (combinedTier >= 1.8) return '60-90 FPS';
-        return '30-60 FPS';
-    };
-
-    const getPerformanceAA = (gpuTier: number, difficultyFactor: number): string => {
-        const effectiveTier = gpuTier * difficultyFactor;
-
-        if (effectiveTier >= 3.5) return 'FXAA ou TAA Basse Qualité';
-        return 'Désactivé';
-    };
-
-    const getPerformanceShadows = (gpuTier: number, difficultyFactor: number): string => {
-        const effectiveTier = gpuTier * difficultyFactor;
-
-        if (effectiveTier >= 3.5) return 'Moyenne';
-        if (effectiveTier >= 2.5) return 'Basse';
-        return 'Très Basse ou Désactivées';
-    };
-
-    const getPerformanceTextures = (ramTier: number, difficultyFactor: number): string => {
-        const effectiveTier = ramTier * difficultyFactor;
-
-        if (effectiveTier >= 2.5) return 'Moyenne';
-        return 'Basse';
-    };
-
-    const getPerformanceDrawDistance = (difficultyFactor: number): string => {
-        if (difficultyFactor >= 0.8) return 'Moyenne';
-        return 'Basse';
-    };
-
-    const getPerformanceReflections = (difficultyFactor: number): string => {
-        if (difficultyFactor >= 0.9) return 'Simples';
-        return 'Désactivées';
-    };
-
-    const getPerformanceAmbient = (difficultyFactor: number): string => {
-        if (difficultyFactor >= 0.8) return 'Basse';
-        return 'Désactivée';
-    };
-
-    const recommendations = showRecommendations ? generateRecommendations() : null;
-
-    // Obtenir le niveau de difficulté actuel pour l'affichage
-    const gameDifficulty = getGameDifficulty();
-    const difficultyText = () => {
-        if (gameDifficulty >= 8) return "Très exigeant";
-        if (gameDifficulty >= 6) return "Exigeant";
-        if (gameDifficulty >= 4) return "Modéré";
-        return "Peu exigeant";
-    };
-
-    const difficultyColor = () => {
-        if (gameDifficulty >= 8) return "text-red-600";
-        if (gameDifficulty >= 6) return "text-orange-500";
-        if (gameDifficulty >= 4) return "text-yellow-500";
-        return "text-green-500";
-    };
+    // Affichage pendant le chargement
+    if (status === "loading" || loading) {
+        return (
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex flex-col justify-center items-center min-h-[60vh]">
+                    <Loader2 className="h-12 w-12 animate-spin text-purple-600 mb-4" />
+                    <p className="text-lg text-gray-600">Chargement des données...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-6">
             {/* En-tête avec nom du jeu et boutons de navigation */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                {/* Nom du jeu et cover en petit */}
                 <div className="flex items-center gap-4">
                     <div className="relative w-16 h-20 rounded overflow-hidden shadow">
                         {coverUrl ? (
@@ -390,20 +171,16 @@ export function GameDetail({ game }: { game: Game }) {
                                     Sortie le: {game.release_dates[0].human}
                                 </p>
                             )}
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100">
-                                Exigence graphique: <span className={difficultyColor()}>{difficultyText()}</span>
-                            </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Boutons de navigation */}
                 <div className="flex gap-3 mt-4 md:mt-0">
                     <Button
                         variant={activeSection === 'config' ? "default" : "outline"}
                         onClick={() => setActiveSection('config')}
                     >
-                        Optimisation PC
+                        Configuration PC
                     </Button>
                     <Button
                         variant={activeSection === 'screenshots' ? "default" : "outline"}
@@ -417,246 +194,118 @@ export function GameDetail({ game }: { game: Game }) {
             <Separator className="my-4" />
 
             {/* Contenu principal */}
-            <div className="grid grid-cols-1 gap-8">
-                {/* Section Optimisation PC */}
-                {activeSection === 'config' && (
-                    <div>
-                        <h2 className="text-2xl font-semibold mb-4">Optimisation pour votre configuration</h2>
+            {activeSection === 'config' && (
+                <div>
+                    <h2 className="text-2xl font-semibold mb-4">Votre configuration pour {game.name}</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Sélection des composants */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Votre configuration</CardTitle>
-                                    <CardDescription>
-                                        Entrez les détails de votre PC pour obtenir des recommandations personnalisées
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            Carte graphique (GPU)
-                                        </label>
-                                        <Select
-                                            value={selectedGPU}
-                                            onValueChange={setSelectedGPU}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez votre GPU" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {gpuOptions.map(option => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                    {status === "unauthenticated" ? (
+                        <GuestHardwareConfig 
+                            hardwareOptions={hardwareOptions} 
+                            gameName={game.name}
+                        />
+                    ) : error ? (
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                                {error}.
+                                <Button
+                                    variant="link"
+                                    className="p-0 h-auto text-white underline ml-1"
+                                    onClick={() => router.push('/profile')}
+                                >
+                                    Compléter mon profil
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Votre configuration détectée</CardTitle>
+                                <CardDescription>
+                                    Configuration matérielle récupérée depuis votre profil
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {userConfig && (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Carte graphique:</span>
+                                            <span>{userConfig.gpu_id?.libelle || "Non configuré"}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Processeur:</span>
+                                            <span>{userConfig.cpu_id?.libelle || "Non configuré"}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Mémoire RAM:</span>
+                                            <span>{userConfig.ram_id?.libelle || "Non configuré"}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Résolution d'écran:</span>
+                                            <span>
+                                                {userConfig.screenresolution_id?.width}x{userConfig.screenresolution_id?.height}
+                                                {userConfig.screenresolution_id?.libelle ? ` (${userConfig.screenresolution_id?.libelle})` : ''}
+                                            </span>
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            Processeur (CPU)
-                                        </label>
-                                        <Select
-                                            value={selectedCPU}
-                                            onValueChange={setSelectedCPU}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez votre CPU" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {cpuOptions.map(option => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            Mémoire (RAM)
-                                        </label>
-                                        <Select
-                                            value={selectedRAM}
-                                            onValueChange={setSelectedRAM}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez votre RAM" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {ramOptions.map(option => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            Résolution d'écran
-                                        </label>
-                                        <Select
-                                            value={selectedResolution}
-                                            onValueChange={setSelectedResolution}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez votre résolution" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {resolutionOptions.map(option => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="pt-4">
-                                        <h4 className="text-sm font-medium mb-2">Mode d'optimisation</h4>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant={optimizationMode === 'visuel' ? "default" : "outline"}
-                                                onClick={() => setOptimizationMode('visuel')}
-                                                className="flex-1"
-                                            >
-                                                Visuel
-                                            </Button>
-                                            <Button
-                                                variant={optimizationMode === 'performances' ? "default" : "outline"}
-                                                onClick={() => setOptimizationMode('performances')}
-                                                className="flex-1"
-                                            >
-                                                Performances
-                                            </Button>
+                                        <div className="text-xs text-gray-500 mt-4">
+                                            <p>
+                                                Vous pouvez modifier votre configuration matérielle dans votre
+                                                <span
+                                                    className="font-medium cursor-pointer text-purple-600 ml-1"
+                                                    onClick={() => router.push('/profile')}
+                                                >
+                                                    profil
+                                                </span>
+                                            </p>
                                         </div>
                                     </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
-                                    <Button
-                                        className="w-full"
-                                        onClick={() => setShowRecommendations(true)}
-                                        disabled={!selectedGPU || !selectedCPU || !selectedRAM || !selectedResolution}
-                                    >
-                                        Générer les recommandations
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                    {/* Description du jeu */}
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>À propos de {game.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-gray-700">
+                                {game.summary || "Aucune description disponible pour ce jeu."}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
-                            {/* Affichage des recommandations */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>
-                                        {optimizationMode === 'visuel'
-                                            ? 'Paramètres recommandés pour qualité visuelle'
-                                            : 'Paramètres recommandés pour performances'}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {optimizationMode === 'visuel'
-                                            ? 'Configuré pour maximiser la qualité graphique tout en maintenant des performances acceptables'
-                                            : 'Configuré pour maximiser les FPS et la fluidité du jeu'}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {!showRecommendations ? (
-                                        <div className="text-center py-12 text-gray-500">
-                                            <p>Veuillez entrer votre configuration et générer les recommandations</p>
-                                        </div>
-                                    ) : recommendations ? (
-                                        <div className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="p-2 border rounded-lg">
-                                                    <h4 className="text-xs font-semibold text-gray-500">RÉSOLUTION</h4>
-                                                    <p className="font-medium">{recommendations.resolution}</p>
-                                                </div>
-                                                <div className="p-2 border rounded-lg">
-                                                    <h4 className="text-xs font-semibold text-gray-500">QUALITÉ GLOBALE</h4>
-                                                    <p className="font-medium">{recommendations.qualite}</p>
-                                                </div>
-                                            </div>
+            {activeSection === 'screenshots' && (
+                <div>
+                    <h2 className="text-2xl font-semibold mb-4">Captures d'écran</h2>
 
-                                            <div className="p-2 border rounded-lg">
-                                                <h4 className="text-xs font-semibold text-gray-500">PERFORMANCES ATTENDUES</h4>
-                                                <p className="font-medium">{recommendations.fps}</p>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <h4 className="font-medium">Paramètres détaillés</h4>
-                                                <table className="w-full text-sm">
-                                                    <tbody>
-                                                        <tr className="border-b">
-                                                            <td className="py-2 text-gray-500">Anti-aliasing</td>
-                                                            <td className="py-2 font-medium text-right">{recommendations.aaMode}</td>
-                                                        </tr>
-                                                        <tr className="border-b">
-                                                            <td className="py-2 text-gray-500">Ombres</td>
-                                                            <td className="py-2 font-medium text-right">{recommendations.shadows}</td>
-                                                        </tr>
-                                                        <tr className="border-b">
-                                                            <td className="py-2 text-gray-500">Textures</td>
-                                                            <td className="py-2 font-medium text-right">{recommendations.textures}</td>
-                                                        </tr>
-                                                        <tr className="border-b">
-                                                            <td className="py-2 text-gray-500">Distance d'affichage</td>
-                                                            <td className="py-2 font-medium text-right">{recommendations.drawDistance}</td>
-                                                        </tr>
-                                                        <tr className="border-b">
-                                                            <td className="py-2 text-gray-500">Réflexions</td>
-                                                            <td className="py-2 font-medium text-right">{recommendations.reflections}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td className="py-2 text-gray-500">Occlusion ambiante</td>
-                                                            <td className="py-2 font-medium text-right">{recommendations.ambient}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                                                <p>Ces paramètres sont adaptés à la configuration que vous avez sélectionnée et à l'exigence graphique de <strong>{game.name}</strong>.</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-12 text-gray-500">
-                                            <p>Une erreur s'est produite. Veuillez réessayer.</p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                    {game.screenshots && game.screenshots.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {game.screenshots.map((screenshot) => (
+                                <div
+                                    key={screenshot.id}
+                                    className="relative aspect-video rounded-lg overflow-hidden shadow-md"
+                                >
+                                    <Image
+                                        src={`https://images.igdb.com/igdb/image/upload/t_screenshot_big/${screenshot.image_id}.jpg`}
+                                        alt={`Screenshot de ${game.name}`}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                            ))}
                         </div>
-                    </div>
-                )}
-
-                {/* Section Screenshots */}
-                {activeSection === 'screenshots' && (
-                    <div>
-                        <h2 className="text-2xl font-semibold mb-4">Captures d'écran</h2>
-
-                        {game.screenshots && game.screenshots.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {game.screenshots.map(screenshot => (
-                                    <div key={screenshot.id} className="relative aspect-video rounded-lg overflow-hidden">
-                                        <Image
-                                            src={`https://images.igdb.com/igdb/image/upload/t_screenshot_big/${screenshot.image_id}.jpg`}
-                                            alt={`Screenshot de ${game.name}`}
-                                            fill
-                                            className="object-cover hover:scale-105 transition-transform duration-300"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 text-gray-500">
-                                <p>Aucune capture d'écran disponible pour ce jeu.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                    ) : (
+                        <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                            <p className="text-gray-500">Aucune capture d'écran disponible pour ce jeu.</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
