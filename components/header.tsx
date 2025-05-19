@@ -207,7 +207,7 @@ export default function Header() {
                                         ) : (
                                             games.map((game) => (
                                                 <Link key={game.id} href={`/games/${game.id}`} className="group aspect-[3/4]">
-                                                    <li>
+                                                    <ul>
                                                         {game.cover ? (
                                                             <img
                                                                 src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
@@ -217,7 +217,7 @@ export default function Header() {
                                                         ) : (
                                                             <Skeleton className="h-full w-full rounded-lg" />
                                                         )}
-                                                    </li>
+                                                    </ul>
                                                 </Link>
                                             ))
                                         )}

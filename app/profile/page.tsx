@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, UserRoundCog } from "lucide-react";
+import { Settings, UserRoundCog } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -110,13 +110,46 @@ const Profile = () => {
     </div>
   );
 
+  // Skeleton pour la page entière pendant le chargement initial
+  const PageSkeleton = () => (
+    <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
+      <div className="container mx-auto">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex items-center">
+            <Skeleton className="h-10 w-48 md:h-12 md:w-64" />
+          </div>
+        </div>
+
+        {/* Description Skeleton */}
+        <Skeleton className="h-6 w-full max-w-lg mb-6" />
+
+        {/* Informations Skeleton */}
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
+          <section className="pb-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-9 w-full sm:w-64" />
+            </div>
+            <UserInfoSkeleton />
+          </section>
+
+          {/* Configuration PC Skeleton */}
+          <section>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <Skeleton className="h-8 w-56" />
+              <Skeleton className="h-9 w-full sm:w-64" />
+            </div>
+            <HardwareConfigSkeleton />
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+
   // Afficher un écran de chargement complet pendant le chargement initial
   if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // Si pas de session, on ne rend rien car onUnauthenticated s'en chargera

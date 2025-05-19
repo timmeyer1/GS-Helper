@@ -1,5 +1,5 @@
 import { fetchFromIGDB } from '@/lib/igdb';
-import { GameDetail } from '@/components/gamedetail';
+import { GameDetail } from '@/components/gamedetail/GameDetail';
 import { notFound } from 'next/navigation';
 
 // Définition du type pour les jeux
