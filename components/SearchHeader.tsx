@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 // Importer le type Game depuis un fichier commun
 import { Game } from '@/types/game';
 
@@ -51,7 +51,7 @@ export const SearchHeader = ({
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        onSearch(e);
+
     };
 
     const handleSuggestionClick = (game: Game) => {
@@ -72,11 +72,6 @@ export const SearchHeader = ({
                             placeholder="Entrez le nom d'un jeu..."
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none"
                         />
-                        <button
-                            type="submit"
-                            className="absolute top-0 right-0 p-2 text-purple-600 hover:text-purple-800"
-                        >
-                        </button>
                     </div>
 
                     {/* Liste des suggestions */}
@@ -106,9 +101,25 @@ export const SearchHeader = ({
                     )}
 
                     {/* Indicateur de chargement des suggestions */}
-                    {isTyping && showSuggestions && (
+                    {showSuggestions && (
                         <div className="absolute right-3 top-2.5">
-                            <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                            {isTyping ? (
+                                <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                            ) : (
+                                query && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setQuery('');
+                                            setShowSuggestions(false);
+                                        }}
+                                        className="text-gray-500 hover:text-gray-800"
+                                        aria-label="Effacer la recherche"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                )
+                            )}
                         </div>
                     )}
                 </div>

@@ -126,9 +126,9 @@ export default function Header() {
                 body: JSON.stringify({
                     endpoint: 'games',
                     query: `
-                        search "${searchTerm}";
-                        fields name, cover.image_id, cover.id, parent_game, version_parent, category;
-                        where parent_game = null & version_parent = null & category != 3;
+                        fields name, cover.image_id, parent_game, version_parent, category, platforms;
+                        where parent_game = null & version_parent = null & category != 3 & platforms = (6, 167, 48) & name ~ *"${searchTerm}"*;
+                        sort rating desc;
                         limit 5;
                     `
                 }),

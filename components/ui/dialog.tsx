@@ -121,6 +121,39 @@ function DialogDescription({
   )
 }
 
+function DialogScreenshot({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        className={cn(
+          "fixed inset-0 z-50 bg-black data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200 overflow-hidden",
+          className
+        )}
+        {...props}
+      >
+        {/* Titre invisible pour l'accessibilité */}
+        <DialogPrimitive.Title className="sr-only">
+          Capture d’écran du jeu
+        </DialogPrimitive.Title>
+
+        {children}
+
+        {/* Bouton de fermeture */}
+        <DialogPrimitive.Close className="absolute top-4 right-4 z-50 text-white opacity-70 hover:opacity-100 transition-opacity">
+          <XIcon className="w-6 h-6" />
+          <span className="sr-only">Fermer</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+}
+
+
 export {
   Dialog,
   DialogClose,
@@ -132,4 +165,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  DialogScreenshot,
 }

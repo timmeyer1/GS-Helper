@@ -56,9 +56,9 @@ export default function SearchPage() {
                 body: JSON.stringify({
                     endpoint: 'games',
                     query: `
-                        search "${query}";
                         fields name, cover.image_id, parent_game, version_parent, category, platforms;
-                        where parent_game = null & version_parent = null & category != 3 & platforms = (6);
+                        where parent_game = null & version_parent = null & category != 3 & platforms = (6, 167, 48) & name ~ *"${query}"*;
+                        sort rating desc;
                         limit 30;
                     `
                 }),
@@ -119,9 +119,9 @@ export default function SearchPage() {
                 body: JSON.stringify({
                     endpoint: 'games',
                     query: `
-                        search "${searchTerm}";
-                        fields name, cover.image_id, parent_game, version_parent, category;
-                        where parent_game = null & version_parent = null & category != 3;
+                        fields name, cover.image_id, parent_game, version_parent, category, platforms;
+                        where parent_game = null & version_parent = null & category != 3 & platforms = (6, 167, 48) & name ~ *"${searchTerm}"*;
+                        sort rating desc;
                         limit 5;
                     `
                 }),
@@ -218,25 +218,25 @@ export default function SearchPage() {
                 <div className="mt-16">
                     <h2 className="text-xl sm:text-2xl font-semibold mb-4">Nouveautés</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        {newGames.length > 0 ? (
-                            newGames.map(game => (
-                                <GameCard key={game.id} game={game} />
-                            ))
-                        ) : (
-                            [...Array(10)].map((_, i) => (
-                                <div key={i} className="space-y-2">
-                                    <Skeleton
-                                        className="bg-gray-200 rounded-lg"
-                                        style={{ height: 256 }}
-                                    />
-                                    <Skeleton className="h-4 w-[90%]" />
-                                </div>
-                            ))
-                        )}
+                            {newGames.length > 0 ? (
+                                newGames.map(game => (
+                                    <GameCard key={game.id} game={game} />
+                                ))
+                            ) : (
+                                [...Array(10)].map((_, i) => (
+                                    <div key={i} className="space-y-2">
+                                        <Skeleton
+                                            className="bg-gray-200 rounded-lg"
+                                            style={{ height: 256 }}
+                                        />
+                                        <Skeleton className="h-4 w-[90%]" />
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-    );
+            );
 }
