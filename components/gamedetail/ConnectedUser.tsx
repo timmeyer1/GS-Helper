@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from "../ui/alert";
 import { useRouter } from "next/navigation";
+import { PostsCard } from './PostsCard';
 
 // Interface pour les composants matériels
 interface HardwareItem {
@@ -29,11 +30,12 @@ interface UserConfig {
 // Props du composant
 interface ConnectedUserProps {
     gameName: string;
+    gameId?: number;
     error: string | null;
     userConfig: UserConfig | null;
 }
 
-const ConnectedUser: React.FC<ConnectedUserProps> = ({ gameName, error, userConfig }) => {
+const ConnectedUser: React.FC<ConnectedUserProps> = ({ gameName, gameId, error, userConfig }) => {
     const router = useRouter();
 
     return (
@@ -99,6 +101,7 @@ const ConnectedUser: React.FC<ConnectedUserProps> = ({ gameName, error, userConf
                             )}
                         </CardContent>
                     </Card>
+                    <PostsCard gameId={gameId} userConfig={userConfig || undefined} />
                 </div>
             )}
         </div>

@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import GuestHardwareConfig from './GuestUser';
 import ConnectedUser from './ConnectedUser';
 import ScreenshotGallery from './ScreenshotGallery';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CreatePostForm from '../posts/CreatePostForm';
 
 // Types
 type Game = {
@@ -64,6 +66,7 @@ export function GameDetail({ game }: { game: Game }) {
         rams: [],
         resolutions: []
     });
+    const [activeTab, setActiveTab] = useState<string>("config");
 
     // URL de la couverture du jeu
     const coverUrl = game.cover
@@ -96,42 +99,6 @@ export function GameDetail({ game }: { game: Game }) {
 
         fetchUserConfig();
     }, [status, session]);
-
-    // // Récupération des options de matériel
-    // useEffect(() => {
-    //     const fetchHardwareOptions = async () => {
-    //         try {
-    //             const [gpuRes, cpuRes, ramRes, resolutionRes] = await Promise.all([
-    //                 fetch("/api/hardware/gpu"),
-    //                 fetch("/api/hardware/cpu"),
-    //                 fetch("/api/hardware/ram"),
-    //                 fetch("/api/hardware/resolution")
-    //             ]);
-
-    //             if (!gpuRes.ok || !cpuRes.ok || !ramRes.ok || !resolutionRes.ok) {
-    //                 throw new Error("Erreur lors de la récupération des options matérielles");
-    //             }
-
-    //             const [gpus, cpus, rams, resolutions] = await Promise.all([
-    //                 gpuRes.json(),
-    //                 cpuRes.json(),
-    //                 ramRes.json(),
-    //                 resolutionRes.json()
-    //             ]);
-
-    //             setHardwareOptions({
-    //                 gpus: gpus.data || [],
-    //                 cpus: cpus.data || [],
-    //                 rams: rams.data || [],
-    //                 resolutions: resolutions.data || []
-    //             });
-    //         } catch (err) {
-    //             console.error("Erreur lors de la récupération des options matérielles:", err);
-    //         }
-    //     };
-
-    //     fetchHardwareOptions();
-    // }, []);
 
     // Affichage pendant le chargement avec Skeleton
     if (status === "loading" || loading) {
@@ -239,7 +206,7 @@ export function GameDetail({ game }: { game: Game }) {
             {/* Contenu principal */}
             {activeSection === 'config' && (
                 <div>
-                    <h2 className="text-2xl font-semibold mb-4">Votre configuration pour {game.name}</h2>
+                    <h2 className="text-2xl font-semibold mb-4">{game.name} sur votre PC</h2>
 
                     {status === "unauthenticated" ? (
                         <GuestHardwareConfig
@@ -247,11 +214,30 @@ export function GameDetail({ game }: { game: Game }) {
                             gameName={game.name}
                         />
                     ) : (
-                        <ConnectedUser
-                            gameName={game.name}
-                            error={error}
-                            userConfig={userConfig}
-                        />
+                        <>
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="config">Ma configuration</TabsTrigger>
+                                    <TabsTrigger value="create-post">Créer un post</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="config" className="mt-4">
+                                    <ConnectedUser
+                                        gameName={game.name}
+                                        gameId={game.id}
+                                        error={error}
+                                        userConfig={userConfig}
+                                    />
+                                </TabsContent>
+                                <TabsContent value="create-post" className="mt-4">
+                                    <CreatePostForm
+                                        gameId={game.id}
+                                        gameName={game.name}
+                                        userConfig={userConfig}
+                                        coverUrl={coverUrl}
+                                    />
+                                </TabsContent>
+                            </Tabs>
+                        </>
                     )}
 
                     {/* Description du jeu */}
