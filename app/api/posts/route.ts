@@ -1,4 +1,3 @@
-// app/api/posts/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
@@ -20,6 +19,15 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const sort = searchParams.get("sort") || "votes"; // votes, date
 
+    // Récupérer l'utilisateur connecté pour les votes
+    const session = await getServerSession();
+    let currentUser = null;
+    
+    if (session?.user?.email) {
+      await connectToDatabase();
+      currentUser = await User.findOne({ email: session.user.email });
+    }
+
     await connectToDatabase();
 
     // Construire le filtre en fonction des paramètres
@@ -33,8 +41,8 @@ export async function GET(req: NextRequest) {
     // Déterminer le tri
     const sortOption: any = {};
     if (sort === "votes") {
-      // Trier par nombre d'upvotes - downvotes
-      sortOption["votes.upvotes - votes.downvotes"] = -1;
+      // Créer un champ virtuel pour le tri par score net
+      sortOption["netScore"] = -1;
     } else if (sort === "date") {
       sortOption.created_at = -1;
     }
@@ -42,23 +50,98 @@ export async function GET(req: NextRequest) {
     // Pagination
     const skip = (page - 1) * limit;
 
-    // Exécuter la requête
-    const posts = await Post.find(filter)
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit)
-      .populate("user_id", "name email") // Récupérer les infos de l'utilisateur
-      .populate("config.gpu_id", "libelle brand")
-      .populate("config.cpu_id", "libelle brand")
-      .populate("config.ram_id", "libelle type")
-      .populate("config.screenresolution_id", "libelle")
-      .lean();
+    // Pipeline d'agrégation pour calculer le score net et trier
+    const pipeline: any[] = [
+      { $match: filter },
+      {
+        $addFields: {
+          netScore: { $subtract: ["$votes.upvotes", "$votes.downvotes"] }
+        }
+      },
+      { $sort: sort === "votes" ? { netScore: -1, created_at: -1 } : { created_at: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ];
+
+    // Ajouter les lookups pour populate
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "user_id",
+          pipeline: [{ $project: { name: 1, email: 1 } }]
+        }
+      },
+      {
+        $lookup: {
+          from: "gpus",
+          localField: "config.gpu_id",
+          foreignField: "_id",
+          as: "config.gpu_id",
+          pipeline: [{ $project: { libelle: 1, brand: 1 } }]
+        }
+      },
+      {
+        $lookup: {
+          from: "cpus",
+          localField: "config.cpu_id",
+          foreignField: "_id",
+          as: "config.cpu_id",
+          pipeline: [{ $project: { libelle: 1, brand: 1 } }]
+        }
+      },
+      {
+        $lookup: {
+          from: "rams",
+          localField: "config.ram_id",
+          foreignField: "_id",
+          as: "config.ram_id",
+          pipeline: [{ $project: { libelle: 1, type: 1 } }]
+        }
+      },
+      {
+        $lookup: {
+          from: "screenresolutions",
+          localField: "config.screenresolution_id",
+          foreignField: "_id",
+          as: "config.screenresolution_id",
+          pipeline: [{ $project: { libelle: 1 } }]
+        }
+      },
+      {
+        $unwind: { path: "$user_id", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $unwind: { path: "$config.gpu_id", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $unwind: { path: "$config.cpu_id", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $unwind: { path: "$config.ram_id", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $unwind: { path: "$config.screenresolution_id", preserveNullAndEmptyArrays: true }
+      }
+    );
+
+    const posts = await Post.aggregate(pipeline);
+
+    // Ajouter l'information de vote de l'utilisateur actuel
+    const postsWithUserVotes = posts.map(post => ({
+      ...post,
+      hasUserVoted: currentUser ? post.votes.voters.some(
+        (vote: any) => vote.user_id.toString() === (currentUser._id as string).toString()
+      ) : false
+    }));
 
     // Compter le nombre total pour la pagination
     const total = await Post.countDocuments(filter);
 
     return NextResponse.json({
-      posts,
+      posts: postsWithUserVotes,
       pagination: {
         total,
         pages: Math.ceil(total / limit),
@@ -104,7 +187,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Récupérer les infos du jeu depuis IGDB
-    // Format de requête IGDB
     const query = `
       fields name, cover.url;
       where id = ${gameId};

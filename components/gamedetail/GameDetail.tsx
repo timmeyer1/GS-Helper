@@ -12,7 +12,7 @@ import GuestHardwareConfig from './GuestUser';
 import ConnectedUser from './ConnectedUser';
 import ScreenshotGallery from './ScreenshotGallery';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CreatePostForm from '../posts/CreatePostForm';
+import CreatePostForm from './posts/CreatePostForm';
 
 // Types
 type Game = {
@@ -212,6 +212,7 @@ export function GameDetail({ game }: { game: Game }) {
                         <GuestHardwareConfig
                             hardwareOptions={hardwareOptions}
                             gameName={game.name}
+                            gameId={game.id}
                         />
                     ) : (
                         <>

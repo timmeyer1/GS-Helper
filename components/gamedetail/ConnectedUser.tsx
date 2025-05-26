@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from "../ui/alert";
 import { useRouter } from "next/navigation";
-import { PostsCard } from './PostsCard';
+import { PostsCard } from './posts/PostsCard';
 
 // Interface pour les composants matériels
 interface HardwareItem {
