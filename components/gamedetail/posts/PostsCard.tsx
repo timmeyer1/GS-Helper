@@ -35,10 +35,8 @@ interface PostUser {
 
 interface PostVotes {
     upvotes: number;
-    downvotes: number;
     voters: Array<{
         user_id: string;
-        vote_type: 'up' | 'down';
     }>;
 }
 
@@ -86,7 +84,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
         fetchPosts();
     }, [gameId]);
 
-    const handleVoteChange = (postId: string, newUpvotes: number, newDownvotes: number, hasUserVoted: boolean) => {
+    const handleVoteChange = (postId: string, newUpvotes: number, hasUserVoted: boolean) => {
         setPosts(prevPosts => {
             const updatedPosts = prevPosts.map(post => {
                 if (post._id === postId) {
@@ -94,8 +92,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                         ...post,
                         votes: {
                             ...post.votes,
-                            upvotes: newUpvotes,
-                            downvotes: newDownvotes
+                            upvotes: newUpvotes
                         },
                         hasUserVoted
                     };
@@ -103,12 +100,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                 return post;
             });
 
-            // Retrier les posts par score net décroissant
-            return updatedPosts.sort((a, b) => {
-                const scoreA = a.votes.upvotes - a.votes.downvotes;
-                const scoreB = b.votes.upvotes - b.votes.downvotes;
-                return scoreB - scoreA;
-            });
+            // Retrier les posts par upvotes décroissants
+            return updatedPosts.sort((a, b) => b.votes.upvotes - a.votes.upvotes);
         });
     };
 
@@ -205,10 +198,9 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                                         <UpvoteButton
                                             postId={post._id}
                                             initialUpvotes={post.votes.upvotes}
-                                            initialDownvotes={post.votes.downvotes}
                                             hasUserVoted={post.hasUserVoted}
-                                            onVoteChange={(upvotes, downvotes, hasUserVoted) =>
-                                                handleVoteChange(post._id, upvotes, downvotes, hasUserVoted)
+                                            onVoteChange={(upvotes, hasUserVoted) =>
+                                                handleVoteChange(post._id, upvotes, hasUserVoted)
                                             }
                                         />
                                     </div>
@@ -245,11 +237,11 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                                     {Object.keys(post.settings).length > 0 && (
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
                                             {Object.entries(post.settings)
-                                                .slice(0, 4)
+                                                .slice(0, 5)
                                                 .map(([key, value]) => (
-                                                    <div key={key} className="flex justify-between">
+                                                    <div key={key} className="flex">
                                                         <span className="text-gray-500 capitalize">
-                                                            {key.replace('_', ' ')}:
+                                                            {key.replace('_', ' ')}: &nbsp;
                                                         </span>
                                                         <span className="font-medium">{String(value)}</span>
                                                     </div>

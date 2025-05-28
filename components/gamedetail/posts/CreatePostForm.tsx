@@ -34,7 +34,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
         { name: 'shadows', options: ['Désactivé', 'Basse', 'Moyenne', 'Élevée'], value: 'Moyenne' },
         { name: 'textures', options: ['Basse', 'Moyenne', 'Élevée', 'Ultra'], value: 'Élevée' },
         { name: 'antialiasing', options: ['Désactivé', 'FXAA', 'TAA', 'MSAA 2x', 'MSAA 4x'], value: 'TAA' },
-        { name: 'resolution_scale', options: ['50%', '75%', '100%', '125%', '150%'], value: '100%' }
+        { name: 'fps_attendus', options: ['-60', '60-80', '80-100', '100-120', '+120'], value: '60-80' }
     ]);
 
     // Vérifier si l'utilisateur a une configuration
@@ -176,8 +176,8 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
                         />
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button type="submit" disabled={isSubmitting || !userConfig}>
+                <CardFooter className="flex justify-end pt-6">
+                    <Button className="cursor-pointer" type="submit" disabled={isSubmitting || !userConfig}>
                         {isSubmitting ? 'Publication...' : 'Publier'}
                     </Button>
                 </CardFooter>

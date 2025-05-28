@@ -41,8 +41,7 @@ export async function GET(req: NextRequest) {
     // Déterminer le tri
     const sortOption: any = {};
     if (sort === "votes") {
-      // Créer un champ virtuel pour le tri par score net
-      sortOption["netScore"] = -1;
+      sortOption["votes.upvotes"] = -1;
     } else if (sort === "date") {
       sortOption.created_at = -1;
     }
@@ -50,15 +49,10 @@ export async function GET(req: NextRequest) {
     // Pagination
     const skip = (page - 1) * limit;
 
-    // Pipeline d'agrégation pour calculer le score net et trier
+    // Pipeline d'agrégation pour trier par upvotes
     const pipeline: any[] = [
       { $match: filter },
-      {
-        $addFields: {
-          netScore: { $subtract: ["$votes.upvotes", "$votes.downvotes"] }
-        }
-      },
-      { $sort: sort === "votes" ? { netScore: -1, created_at: -1 } : { created_at: -1 } },
+      { $sort: sort === "votes" ? { "votes.upvotes": -1, created_at: -1 } : { created_at: -1 } },
       { $skip: skip },
       { $limit: limit }
     ];

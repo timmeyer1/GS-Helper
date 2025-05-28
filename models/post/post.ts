@@ -1,9 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-// Interface pour les votes
+// Interface pour les votes (simplifié - seulement upvote)
 interface Vote {
   user_id: mongoose.Types.ObjectId;
-  vote_type: 'up' | 'down';
 }
 
 // Interface pour le post
@@ -24,23 +23,17 @@ interface IPost extends Document {
   settings: Record<string, string>;
   votes: {
     upvotes: number;
-    downvotes: number;
     voters: Vote[];
   };
   created_at: Date;
   updated_at: Date;
 }
 
-// Schéma pour un vote
+// Schéma pour un vote (simplifié)
 const VoteSchema = new Schema<Vote>({
   user_id: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true
-  },
-  vote_type: {
-    type: String,
-    enum: ['up', 'down'],
     required: true
   }
 });
@@ -102,10 +95,6 @@ const PostSchema = new Schema<IPost>({
       type: Number,
       default: 0
     },
-    downvotes: {
-      type: Number,
-      default: 0
-    },
     voters: {
       type: [VoteSchema],
       default: []
@@ -127,7 +116,7 @@ const PostSchema = new Schema<IPost>({
 PostSchema.index({ game_id: 1 });
 PostSchema.index({ user_id: 1 });
 PostSchema.index({ created_at: -1 });
-PostSchema.index({ 'votes.upvotes': -1, 'votes.downvotes': 1 });
+PostSchema.index({ 'votes.upvotes': -1 });
 
 // Créer le modèle seulement s'il n'existe pas déjà
 const Post = mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);

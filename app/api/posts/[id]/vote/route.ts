@@ -38,14 +38,8 @@ export async function POST(
     );
 
     if (existingVoteIndex !== -1) {
-      // L'utilisateur a déjà voté, retirer son vote
-      const existingVote = post.votes.voters[existingVoteIndex];
-      
-      if (existingVote.vote_type === 'up') {
-        post.votes.upvotes -= 1;
-      } else {
-        post.votes.downvotes -= 1;
-      }
+      // L'utilisateur a déjà voté, retirer son upvote
+      post.votes.upvotes -= 1;
       
       // Supprimer le vote de la liste
       post.votes.voters.splice(existingVoteIndex, 1);
@@ -53,23 +47,19 @@ export async function POST(
       // Nouvel upvote
       post.votes.upvotes += 1;
       post.votes.voters.push({
-        user_id: user._id,
-        vote_type: 'up'
+        user_id: user._id
       });
     }
 
     await post.save();
 
-    // Calculer le score net
-    const netScore = post.votes.upvotes - post.votes.downvotes;
+    // Vérifier si l'utilisateur a voté après la modification
     const hasUserVoted = post.votes.voters.some(
       (vote: any) => vote.user_id.toString() === (user._id as string).toString()
     );
 
     return NextResponse.json({
       upvotes: post.votes.upvotes,
-      downvotes: post.votes.downvotes,
-      netScore,
       hasUserVoted
     });
   } catch (error) {
