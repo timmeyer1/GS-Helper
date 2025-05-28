@@ -55,8 +55,9 @@ const ConnectedUser: React.FC<ConnectedUserProps> = ({ gameName, gameId, error, 
                     </AlertDescription>
                 </Alert>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
+                // <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="">
+                    {/* <Card>
                         <CardHeader>
                             <CardTitle>Votre configuration détectée</CardTitle>
                             <CardDescription>
@@ -100,7 +101,7 @@ const ConnectedUser: React.FC<ConnectedUserProps> = ({ gameName, gameId, error, 
                                 </div>
                             )}
                         </CardContent>
-                    </Card>
+                    </Card> */}
                     <PostsCard gameId={gameId} userConfig={userConfig || undefined} />
                 </div>
             )}

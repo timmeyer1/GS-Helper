@@ -187,12 +187,14 @@ export function GameDetail({ game }: { game: Game }) {
 
                 <div className="flex gap-3 mt-4 md:mt-0">
                     <Button
+                        className="cursor-pointer"
                         variant={activeSection === 'config' ? "default" : "outline"}
                         onClick={() => setActiveSection('config')}
                     >
-                        Configuration PC
+                        Paramètres graphiques
                     </Button>
                     <Button
+                        className="cursor-pointer"
                         variant={activeSection === 'screenshots' ? "default" : "outline"}
                         onClick={() => setActiveSection('screenshots')}
                     >
@@ -218,7 +220,7 @@ export function GameDetail({ game }: { game: Game }) {
                         <>
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
                                 <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="config">Ma configuration</TabsTrigger>
+                                    <TabsTrigger value="config">Liste des posts</TabsTrigger>
                                     <TabsTrigger value="create-post">Créer un post</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="config" className="mt-4">
@@ -235,6 +237,7 @@ export function GameDetail({ game }: { game: Game }) {
                                         gameName={game.name}
                                         userConfig={userConfig}
                                         coverUrl={coverUrl}
+                                        onPostCreated={() => setActiveTab("config")}
                                     />
                                 </TabsContent>
                             </Tabs>

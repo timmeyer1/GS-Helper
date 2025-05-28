@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
     const sortOption: any = {};
     if (sort === "votes") {
       sortOption["votes.upvotes"] = -1;
+      sortOption["created_at"] = -1;
     } else if (sort === "date") {
       sortOption.created_at = -1;
     }
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
     // Pipeline d'agrégation pour trier par upvotes
     const pipeline: any[] = [
       { $match: filter },
-      { $sort: sort === "votes" ? { "votes.upvotes": -1, created_at: -1 } : { created_at: -1 } },
+      { $sort: sortOption },
       { $skip: skip },
       { $limit: limit }
     ];
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
-    const { gameId, content, settings } = data;
+    const { gameId, content, settings, postType } = data;
     
     if (!gameId || !content) {
       return NextResponse.json(
@@ -223,6 +224,7 @@ export async function POST(req: NextRequest) {
       },
       content,
       settings: settings || {},
+      postType: postType || "equilibre", 
     });
 
     await newPost.save();

@@ -22,11 +22,13 @@ interface CreatePostFormProps {
     gameName: string;
     userConfig: any | null;
     coverUrl?: string;
+    onPostCreated?: () => void;
 }
 
-const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userConfig, coverUrl }) => {
+const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userConfig, coverUrl, onPostCreated }) => {
     const router = useRouter();
     const [content, setContent] = useState<string>('');
+    const [postType, setPostType] = useState<string>('equilibre');
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [settings, setSettings] = useState<Record<string, string>>({});
     const [gameSettings, setGameSettings] = useState<GameSetting[]>([
@@ -89,7 +91,8 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
                 body: JSON.stringify({
                     gameId,
                     content,
-                    settings
+                    settings,
+                    postType
                 }),
             });
 
@@ -97,9 +100,13 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
 
             if (response.ok) {
                 toast.success('Publication créée avec succès');
-                // Rediriger vers la page du jeu ou rafraîchir les posts
                 router.refresh();
                 setContent('');
+                setPostType('performance');
+
+                if (onPostCreated) {
+                    onPostCreated();
+                }
             } else {
                 toast.error(data.error || 'Erreur lors de la création du post');
             }
@@ -133,6 +140,21 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
                             </div>
                         </div>
                     )}
+
+                    {/* Type de post */}
+                    <div className="space-y-2">
+                        <Label htmlFor="postType">Orientation du post</Label>
+                        <Select value={postType} onValueChange={setPostType}>
+                            <SelectTrigger id="postType">
+                                <SelectValue placeholder="Sélectionner l'orientation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="equilibre">Équilibré</SelectItem>
+                                <SelectItem value="performance">Performance</SelectItem>
+                                <SelectItem value="qualite">Qualité</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
                     {/* Paramètres du jeu */}
                     <div className="space-y-4">
@@ -177,7 +199,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end pt-6">
-                    <Button className="cursor-pointer" type="submit" disabled={isSubmitting || !userConfig}>
+                    <Button variant={"purple"} className="cursor-pointer" type="submit" disabled={isSubmitting || !userConfig}>
                         {isSubmitting ? 'Publication...' : 'Publier'}
                     </Button>
                 </CardFooter>
