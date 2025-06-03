@@ -3,13 +3,34 @@ import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
 import Post from "@/models/post/post";
 import User from "@/models/user/User";
-import { fetchFromIGDB } from "@/lib/igdb";
 import UserConfig from "@/models/user/UserConfig";
+import Setting from "@/models/settings/settings";
+import Preset from "@/models/settings/preset";
+import { fetchFromIGDB } from "@/lib/igdb";
 
-// GET - Récupérer les posts avec filtrage possible
+// GET - Récupérer les posts avec les settings/presets
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const getSettings = searchParams.get("settings");
+    const getPresets = searchParams.get("presets");
+    
+    // Si on demande les settings ou presets
+    if (getSettings || getPresets) {
+      await connectToDatabase();
+      
+      if (getSettings) {
+        const settings = await Setting.find();
+        return NextResponse.json({ settings });
+      }
+      
+      if (getPresets) {
+        const presets = await Preset.find();
+        return NextResponse.json({ presets });
+      }
+    }
+
+    // Code existant pour récupérer les posts (inchangé)
     const gameId = searchParams.get("game_id");
     const gpuId = searchParams.get("gpu_id");
     const cpuId = searchParams.get("cpu_id");
@@ -17,9 +38,8 @@ export async function GET(req: NextRequest) {
     const screenResolutionId = searchParams.get("screenresolution_id");
     const limit = parseInt(searchParams.get("limit") || "10");
     const page = parseInt(searchParams.get("page") || "1");
-    const sort = searchParams.get("sort") || "votes"; // votes, date
+    const sort = searchParams.get("sort") || "votes";
 
-    // Récupérer l'utilisateur connecté pour les votes
     const session = await getServerSession();
     let currentUser = null;
     
@@ -30,7 +50,6 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
 
-    // Construire le filtre en fonction des paramètres
     const filter: any = {};
     if (gameId) filter.game_id = parseInt(gameId);
     if (gpuId) filter["config.gpu_id"] = gpuId;
@@ -38,7 +57,6 @@ export async function GET(req: NextRequest) {
     if (ramId) filter["config.ram_id"] = ramId;
     if (screenResolutionId) filter["config.screenresolution_id"] = screenResolutionId;
 
-    // Déterminer le tri
     const sortOption: any = {};
     if (sort === "votes") {
       sortOption["votes.upvotes"] = -1;
@@ -47,19 +65,13 @@ export async function GET(req: NextRequest) {
       sortOption.created_at = -1;
     }
 
-    // Pagination
     const skip = (page - 1) * limit;
 
-    // Pipeline d'agrégation pour trier par upvotes
     const pipeline: any[] = [
       { $match: filter },
       { $sort: sortOption },
       { $skip: skip },
-      { $limit: limit }
-    ];
-
-    // Ajouter les lookups pour populate
-    pipeline.push(
+      { $limit: limit },
       {
         $lookup: {
           from: "users",
@@ -105,26 +117,15 @@ export async function GET(req: NextRequest) {
           pipeline: [{ $project: { libelle: 1 } }]
         }
       },
-      {
-        $unwind: { path: "$user_id", preserveNullAndEmptyArrays: true }
-      },
-      {
-        $unwind: { path: "$config.gpu_id", preserveNullAndEmptyArrays: true }
-      },
-      {
-        $unwind: { path: "$config.cpu_id", preserveNullAndEmptyArrays: true }
-      },
-      {
-        $unwind: { path: "$config.ram_id", preserveNullAndEmptyArrays: true }
-      },
-      {
-        $unwind: { path: "$config.screenresolution_id", preserveNullAndEmptyArrays: true }
-      }
-    );
+      { $unwind: { path: "$user_id", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$config.gpu_id", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$config.cpu_id", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$config.ram_id", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$config.screenresolution_id", preserveNullAndEmptyArrays: true } }
+    ];
 
     const posts = await Post.aggregate(pipeline);
 
-    // Ajouter l'information de vote de l'utilisateur actuel
     const postsWithUserVotes = posts.map(post => ({
       ...post,
       hasUserVoted: currentUser ? post.votes.voters.some(
@@ -132,7 +133,6 @@ export async function GET(req: NextRequest) {
       ) : false
     }));
 
-    // Compter le nombre total pour la pagination
     const total = await Post.countDocuments(filter);
 
     return NextResponse.json({
@@ -145,11 +145,8 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error("Erreur lors de la récupération des posts:", error);
-    return NextResponse.json(
-      { error: "Erreur serveur" },
-      { status: 500 }
-    );
+    console.error("Erreur lors de la récupération:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
 
@@ -163,7 +160,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
-    const { gameId, content, settings, postType } = data;
+    const { gameId, content, settings, postType, expectedFps } = data;
     
     if (!gameId || !content) {
       return NextResponse.json(
@@ -174,14 +171,12 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
     
-    // Récupérer l'utilisateur
     const user = await User.findOne({ email: session.user.email });
     
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    // Récupérer les infos du jeu depuis IGDB
     const query = `
       fields name, cover.url;
       where id = ${gameId};
@@ -198,7 +193,6 @@ export async function POST(req: NextRequest) {
       game.cover.url.replace("t_thumb", "t_cover_big") : 
       null;
 
-    // Récupérer la configuration de l'utilisateur
     const userConfig = await UserConfig.findOne({ user_id: user._id });
     
     if (!userConfig) {
@@ -208,7 +202,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Créer le post
     const newPost = new Post({
       user_id: user._id,
       game_id: gameId,
@@ -224,7 +217,8 @@ export async function POST(req: NextRequest) {
       },
       content,
       settings: settings || {},
-      postType: postType || "equilibre", 
+      postType: postType || "equilibre",
+      expectedFps: expectedFps || "60-80",
     });
 
     await newPost.save();
@@ -235,9 +229,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Erreur lors de la création du post:", error);
-    return NextResponse.json(
-      { error: "Erreur serveur" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

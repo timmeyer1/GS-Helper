@@ -33,65 +33,71 @@ interface UserConfig {
     screenresolution_id?: HardwareItem;
 }
 
-interface PostUser {
-    image: undefined;
-    _id: string;
-    name?: string;
-    email?: string;
-}
-
-interface PostVotes {
-    upvotes: number;
-    voters: Array<{
-        user_id: string;
-    }>;
-}
-
 interface Post {
     _id: string;
-    user_id: PostUser;
+    user_id: {
+        image: undefined;
+        _id: string;
+        name?: string;
+        email?: string;
+    };
     game_id: number;
     content: string;
     settings: Record<string, string>;
-    votes: PostVotes;
+    votes: {
+        upvotes: number;
+        voters: Array<{ user_id: string }>;
+    };
     hasUserVoted: boolean;
     created_at: string;
     postType: 'equilibre' | 'performance' | 'qualite';
-}
-
-interface PostsCardProps {
-    gameId?: number;
-    userConfig?: UserConfig;
+    expectedFps: string;
 }
 
 type FilterType = 'tous' | 'equilibre' | 'performance' | 'qualite';
 
-const FILTER_ICONS = {
-    performance: Trophy,
-    equilibre: CircleEqual,
-    qualite: Target,
-    tous: Filter
+const FILTERS = {
+    tous: { icon: Filter, label: 'Tous', color: '' },
+    equilibre: { icon: CircleEqual, label: 'Équilibré', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+    performance: { icon: Trophy, label: 'Performance', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+    qualite: { icon: Target, label: 'Qualité', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }
 };
 
-const FILTER_LABELS: Record<FilterType, string> = {
-    tous: 'Tous',
-    equilibre: 'Équilibré',
-    performance: 'Performance',
-    qualite: 'Qualité'
+// Mapping pour traduire les noms de settings
+const SETTINGS_TRANSLATIONS: Record<string, string> = {
+    viewDistance: 'Distance d\'affichage',
+    antialiasing: 'Anticrénelage',
+    shadows: 'Ombres',
+    postProcessing: 'Post-traitement',
+    texture: 'Textures',
+    effects: 'Effets',
+    foliage: 'Feuillage',
+    lights: 'Éclairage'
 };
 
-const PostTypeBadge: React.FC<{ type: 'equilibre' | 'performance' | 'qualite' }> = ({ type }) => {
-    const Icon = FILTER_ICONS[type];
-    const colors = {
-        performance: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-        equilibre: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-        qualite: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-    };
+// Mapping pour traduire les valeurs de settings
+const SETTINGS_VALUES_TRANSLATIONS: Record<string, string> = {
+    Low: 'Faible',
+    Medium: 'Moyen',
+    High: 'Élevé',
+    Ultra: 'Ultra'
+};
 
+// Mapping pour traduire les FPS
+const FPS_TRANSLATIONS: Record<string, string> = {
+    '-60': 'Moins de 60 FPS',
+    '60-80': '60-80 FPS',
+    '80-100': '80-100 FPS',
+    '100-120': '100-120 FPS',
+    '+120': 'Plus de 120 FPS'
+};
+
+const PostTypeBadge: React.FC<{ type: keyof typeof FILTERS }> = ({ type }) => {
+    const { icon: Icon, label, color } = FILTERS[type];
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[type]}`}>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
             <Icon className="w-3 h-3 mr-1" />
-            {FILTER_LABELS[type]}
+            {label}
         </span>
     );
 };
@@ -102,15 +108,47 @@ const EmptyState: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     </div>
 );
 
-export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
+const PostSkeleton = () => (
+    <Card className="h-[320px]">
+        <CardContent className="p-4 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div>
+                        <Skeleton className="h-4 w-20 mb-1" />
+                        <Skeleton className="h-3 w-16" />
+                    </div>
+                </div>
+                <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            <div className="flex-1 space-y-3">
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-12 w-full" />
+                <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex justify-between">
+                            <Skeleton className="h-3 w-16" />
+                            <Skeleton className="h-3 w-12" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <Skeleton className="h-4 w-20 ml-auto" />
+        </CardContent>
+    </Card>
+);
+
+export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> = ({
+    gameId,
+    userConfig
+}) => {
     const router = useRouter();
     const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState<FilterType>('tous');
 
     const fetchPosts = useCallback(async () => {
         if (!gameId) return;
-
         setLoading(true);
         try {
             const response = await fetch(`/api/posts?game_id=${gameId}&limit=6&sort=votes`);
@@ -119,7 +157,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                 setPosts(data.posts || []);
             }
         } catch (error) {
-            console.error('Erreur lors de la récupération des posts:', error);
+            console.error('Erreur posts:', error);
         } finally {
             setLoading(false);
         }
@@ -130,31 +168,27 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
     }, [fetchPosts]);
 
     const handleVoteChange = useCallback((postId: string, newUpvotes: number, hasUserVoted: boolean) => {
-        setPosts(prevPosts => {
-            const updatedPosts = prevPosts.map(post => {
-                if (post._id === postId) {
-                    return {
-                        ...post,
-                        votes: {
-                            ...post.votes,
-                            upvotes: newUpvotes
-                        },
-                        hasUserVoted
-                    };
-                }
-                return post;
-            });
-
-            return [...updatedPosts].sort((a, b) => b.votes.upvotes - a.votes.upvotes);
-        });
+        setPosts(prev => prev.map(post =>
+            post._id === postId
+                ? { ...post, votes: { ...post.votes, upvotes: newUpvotes }, hasUserVoted }
+                : post
+        ).sort((a, b) => b.votes.upvotes - a.votes.upvotes));
     }, []);
 
-    const truncateText = useCallback((text: string, maxLength: number = 120) => {
-        if (text.length <= maxLength) return text;
-        return `${text.slice(0, maxLength).trim()}...`;
-    }, []);
+    const truncateText = (text: string, maxLength: number = 100) =>
+        text.length <= maxLength ? text : `${text.slice(0, maxLength).trim()}...`;
 
     const filteredPosts = posts.filter(post => filter === 'tous' || post.postType === filter);
+
+    // Fonction pour traduire le nom d'un setting
+    const translateSettingName = (settingName: string): string => {
+        return SETTINGS_TRANSLATIONS[settingName] || settingName.replace('_', ' ');
+    };
+
+    // Fonction pour traduire la valeur d'un setting
+    const translateSettingValue = (value: string): string => {
+        return SETTINGS_VALUES_TRANSLATIONS[value] || value;
+    };
 
     if (loading) {
         return (
@@ -165,40 +199,46 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Array.from({ length: 6 }).map((_, index) => (
-                            <Card key={index} className="h-[280px]">
-                                <CardContent className="p-4 h-full flex flex-col">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <Skeleton className="h-8 w-8 rounded-full" />
-                                            <div>
-                                                <Skeleton className="h-4 w-20 mb-1" />
-                                                <Skeleton className="h-3 w-16" />
-                                            </div>
-                                        </div>
-                                        <Skeleton className="h-6 w-16 rounded-full" />
-                                    </div>
-                                    <div className="flex-1 space-y-3">
-                                        <Skeleton className="h-5 w-20 rounded-full" />
-                                        <Skeleton className="h-12 w-full" />
-                                        <div className="space-y-2">
-                                            {Array.from({ length: 3 }).map((_, i) => (
-                                                <div key={i} className="flex justify-between">
-                                                    <Skeleton className="h-3 w-16" />
-                                                    <Skeleton className="h-3 w-12" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <Skeleton className="h-4 w-20 ml-auto" />
-                                </CardContent>
-                            </Card>
-                        ))}
+                        {[...Array(6)].map((_, i) => <PostSkeleton key={i} />)}
                     </div>
                 </CardContent>
             </Card>
         );
     }
+
+    const renderEmptyState = () => {
+        if (!userConfig) {
+            return (
+                <EmptyState>
+                    <p className="text-gray-500">Ajoutez votre configuration matérielle pour voir des recommandations</p>
+                    <Button variant="outline" onClick={() => router.push('/profile')}>
+                        Compléter mon profil
+                    </Button>
+                </EmptyState>
+            );
+        }
+
+        if (filteredPosts.length === 0 && posts.length > 0) {
+            return (
+                <EmptyState>
+                    <p className="text-gray-500">Aucun post trouvé pour le filtre "{FILTERS[filter].label}"</p>
+                    <Button variant="outline" onClick={() => setFilter('tous')}>
+                        Afficher tous les posts
+                    </Button>
+                </EmptyState>
+            );
+        }
+
+        if (posts.length === 0) {
+            return (
+                <EmptyState>
+                    <p className="text-gray-500">Aucun post disponible pour ce jeu</p>
+                </EmptyState>
+            );
+        }
+
+        return null;
+    };
 
     return (
         <Card>
@@ -222,47 +262,23 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[160px]">
-                                {Object.entries(FILTER_LABELS).map(([key, label]) => {
-                                    const filterKey = key as FilterType;
-                                    const Icon = FILTER_ICONS[filterKey];
-                                    return (
-                                        <DropdownMenuItem
-                                            key={key}
-                                            onClick={() => setFilter(filterKey)}
-                                            className={`cursor-pointer ${filter === filterKey ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
-                                        >
-                                            <Icon className="w-4 h-4 mr-2" />
-                                            {label}
-                                        </DropdownMenuItem>
-                                    );
-                                })}
+                                {Object.entries(FILTERS).map(([key, { icon: Icon, label }]) => (
+                                    <DropdownMenuItem
+                                        key={key}
+                                        onClick={() => setFilter(key as FilterType)}
+                                        className={`cursor-pointer ${filter === key ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+                                    >
+                                        <Icon className="w-4 h-4 mr-2" />
+                                        {label}
+                                    </DropdownMenuItem>
+                                ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
                 </div>
             </CardHeader>
             <CardContent>
-                {!userConfig ? (
-                    <EmptyState>
-                        <p className="text-gray-500">Ajoutez votre configuration matérielle pour voir des recommandations</p>
-                        <Button variant="outline" onClick={() => router.push('/profile')}>
-                            Compléter mon profil
-                        </Button>
-                    </EmptyState>
-                ) : filteredPosts.length === 0 && posts.length > 0 ? (
-                    <EmptyState>
-                        <p className="text-gray-500">
-                            Aucun post trouvé pour le filtre "{FILTER_LABELS[filter]}"
-                        </p>
-                        <Button variant="outline" onClick={() => setFilter('tous')}>
-                            Afficher tous les posts
-                        </Button>
-                    </EmptyState>
-                ) : posts.length === 0 ? (
-                    <EmptyState>
-                        <p className="text-gray-500">Aucun post disponible pour ce jeu</p>
-                    </EmptyState>
-                ) : (
+                {renderEmptyState() || (
                     <div className="space-y-4">
                         {filter !== 'tous' && (
                             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -283,7 +299,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                             {filteredPosts.map((post) => (
                                 <Card
                                     key={post._id}
-                                    className="h-[280px] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer group"
+                                    className="h-[320px] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer group"
                                 >
                                     <CardContent className="p-4 h-full flex flex-col">
                                         <div className="flex items-center justify-between mb-3">
@@ -316,8 +332,13 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                                             />
                                         </div>
 
-                                        <div className="mb-3">
+                                        <div className="mb-3 flex items-center justify-between">
                                             <PostTypeBadge type={post.postType} />
+                                            {post.expectedFps && (
+                                                <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                                                    {FPS_TRANSLATIONS[post.expectedFps] || post.expectedFps}
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div className="flex-1 flex flex-col">
@@ -327,29 +348,31 @@ export const PostsCard: React.FC<PostsCardProps> = ({ gameId, userConfig }) => {
                                                 </p>
                                             </div>
 
-                                            {Object.keys(post.settings).length > 0 && (
-                                                <div className="space-y-1 text-xs mb-3">
+                                            {/* Affichage des paramètres graphiques */}
+                                            {post.settings && Object.keys(post.settings).length > 0 && (
+                                                <div className="space-y-1 text-xs mb-3 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-md">
+                                                    <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                        Paramètres graphiques:
+                                                    </div>
                                                     {Object.entries(post.settings)
-                                                        .slice(0, 3)
+                                                        .slice(0, 4)
                                                         .map(([key, value]) => (
-                                                            <div key={key} className="flex">
-                                                                <span className="text-gray-500 capitalize">
-                                                                    {key.replace('_', ' ')}: &nbsp;
+                                                            <div key={key} className="flex justify-between items-center">
+                                                                <span className="text-gray-600 dark:text-gray-400">
+                                                                    {translateSettingName(key)}:
                                                                 </span>
-                                                                <span className="font-medium">{String(value)}</span>
+                                                                <span className="font-medium text-gray-800 dark:text-gray-200">
+                                                                    {translateSettingValue(String(value))}
+                                                                </span>
                                                             </div>
                                                         ))}
+                                                    {Object.keys(post.settings).length > 4 && (
+                                                        <div className="text-center text-gray-500 italic">
+                                                            +{Object.keys(post.settings).length - 4} autres...
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                        </div>
-
-                                        <div className="text-xs text-right mt-auto">
-                                            <Link
-                                                href={gameId ? `/games/${gameId}/posts/${post._id}` : '#'}
-                                                className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                                            >
-                                                Voir détails
-                                            </Link>
                                         </div>
                                     </CardContent>
                                 </Card>

@@ -90,11 +90,13 @@ const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({
                 <DialogScreenshot onKeyDown={handleKeyDown}>
                     <div className="relative w-full h-full">
                         <Image
-                            src={`https://images.igdb.com/igdb/image/upload/t_original/${screenshots[currentIndex].image_id}.jpg`}
+                            src={`https://images.igdb.com/igdb/image/upload/t_1080p/${screenshots[currentIndex].image_id}.jpg`}
                             alt={`Screenshot de ${gameName}`}
                             fill
                             className="object-contain"
                             priority
+                            quality={100}
+                            sizes="(max-width: 3840px) 3840px, 100vw"
                         />
 
                         <Button
@@ -127,3 +129,4 @@ const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({
 };
 
 export default ScreenshotGallery;
+

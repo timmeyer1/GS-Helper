@@ -1,21 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-// Interface pour les votes
-interface Vote {
-  user_id: mongoose.Types.ObjectId;
-}
-
-// Type pour l'orientation du post
 type PostType = 'equilibre' | 'performance' | 'qualite';
+type FpsRange = '-60' | '60-80' | '80-100' | '100-120' | '+120';
 
-// Interface pour le post
 interface IPost extends Document {
   user_id: mongoose.Types.ObjectId;
   game_id: number;
-  game_metadata: {
-    name: string;
-    cover_url: string | null;
-  };
+  game_metadata: { name: string; cover_url: string | null };
   config: {
     gpu_id: mongoose.Types.ObjectId;
     cpu_id: mongoose.Types.ObjectId;
@@ -25,111 +16,43 @@ interface IPost extends Document {
   content: string;
   settings: Record<string, string>;
   postType: PostType;
-  votes: {
-    upvotes: number;
-    voters: Vote[];
-  };
+  expectedFps: FpsRange;
+  votes: { upvotes: number; voters: Array<{ user_id: mongoose.Types.ObjectId }> };
   created_at: Date;
   updated_at: Date;
 }
 
-// Schéma pour un vote
-const VoteSchema = new Schema<Vote>({
-  user_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  }
-});
-
-// Schéma pour un post
 const PostSchema = new Schema<IPost>({
-  user_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  game_id: {
-    type: Number,
-    required: true
-  },
+  user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  game_id: { type: Number, required: true },
   game_metadata: {
-    name: {
-      type: String,
-      required: true
-    },
-    cover_url: {
-      type: String,
-      default: null
-    }
+    name: { type: String, required: true },
+    cover_url: { type: String, default: null }
   },
   config: {
-    gpu_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'Gpu',
-      required: true
-    },
-    cpu_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'Cpu',
-      required: true
-    },
-    ram_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'Ram',
-      required: true
-    },
-    screenresolution_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'ScreenResolution',
-      required: true
-    }
+    gpu_id: { type: Schema.Types.ObjectId, ref: 'Gpu', required: true },
+    cpu_id: { type: Schema.Types.ObjectId, ref: 'Cpu', required: true },
+    ram_id: { type: Schema.Types.ObjectId, ref: 'Ram', required: true },
+    screenresolution_id: { type: Schema.Types.ObjectId, ref: 'ScreenResolution', required: true }
   },
-  content: {
-    type: String,
+  content: { type: String, required: true },
+  settings: {
+    type: Object,
+    of: String,
+    default: {},
     required: true
   },
-  settings: {
-    type: Map,
-    of: String,
-    default: {}
-  },
-  postType: {
-    type: String,
-    enum: ['equilibre', 'performance', 'qualite'],
-    required: true,
-    default: 'equilibre'
-  },
+  postType: { type: String, enum: ['equilibre', 'performance', 'qualite'], default: 'equilibre' },
+  expectedFps: { type: String, enum: ['-60', '60-80', '80-100', '100-120', '+120'], default: '60-80' },
   votes: {
-    upvotes: {
-      type: Number,
-      default: 0
-    },
-    voters: {
-      type: [VoteSchema],
-      default: []
-    }
-  },
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
+    upvotes: { type: Number, default: 0 },
+    voters: [{ user_id: { type: Schema.Types.ObjectId, ref: 'User' } }]
   }
-}, {
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
-});
+}, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-// Indexer pour améliorer les performances
-PostSchema.index({ game_id: 1 });
-PostSchema.index({ user_id: 1 });
-PostSchema.index({ created_at: -1 });
-PostSchema.index({ 'votes.upvotes': -1 });
-PostSchema.index({ postType: 1 });
+// Index pour performance
+PostSchema.index({ game_id: 1, 'votes.upvotes': -1 });
 
-// Créer le modèle seulement s'il n'existe pas déjà
 const Post = mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);
-
 export default Post;
+export type { IPost, PostType, FpsRange };

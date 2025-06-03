@@ -5,18 +5,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import { Button } from '../../ui/button';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Button } from '../../ui/button';
 
-// Interface pour les paramètres de configuration du jeu
-interface GameSetting {
+interface Setting {
+    _id: string;
     name: string;
-    options: string[];
-    value: string;
+    display_name: string;
 }
 
-// Interface pour les props du composant
+interface Preset {
+    _id: string;
+    name: 'Low' | 'Medium' | 'High' | 'Ultra';
+    display_name: string;
+}
+
 interface CreatePostFormProps {
     gameId: number;
     gameName: string;
@@ -25,48 +29,64 @@ interface CreatePostFormProps {
     onPostCreated?: () => void;
 }
 
-const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userConfig, coverUrl, onPostCreated }) => {
+const CreatePostForm: React.FC<CreatePostFormProps> = ({
+    gameId, gameName, userConfig, onPostCreated
+}) => {
     const router = useRouter();
-    const [content, setContent] = useState<string>('');
-    const [postType, setPostType] = useState<string>('equilibre');
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [settings, setSettings] = useState<Record<string, string>>({});
-    const [gameSettings, setGameSettings] = useState<GameSetting[]>([
-        { name: 'preset', options: ['Basse', 'Moyenne', 'Élevée', 'Ultra'], value: 'Moyenne' },
-        { name: 'shadows', options: ['Désactivé', 'Basse', 'Moyenne', 'Élevée'], value: 'Moyenne' },
-        { name: 'textures', options: ['Basse', 'Moyenne', 'Élevée', 'Ultra'], value: 'Élevée' },
-        { name: 'antialiasing', options: ['Désactivé', 'FXAA', 'TAA', 'MSAA 2x', 'MSAA 4x'], value: 'TAA' },
-        { name: 'fps_attendus', options: ['-60', '60-80', '80-100', '100-120', '+120'], value: '60-80' }
-    ]);
+    const [content, setContent] = useState('');
+    const [postType, setPostType] = useState('');
+    const [expectedFps, setExpectedFps] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [settings, setSettings] = useState<Setting[]>([]);
+    const [presets, setPresets] = useState<Preset[]>([]);
+    const [customSettings, setCustomSettings] = useState<Record<string, string>>({});
+    const [loading, setLoading] = useState(true);
 
-    // Vérifier si l'utilisateur a une configuration
+    // Charger les settings et presets
     useEffect(() => {
-        if (!userConfig) {
-            toast.error('Vous devez configurer votre matériel avant de publier', {
-                description: 'Veuillez compléter votre profil d\'abord'
-            });
-        }
-    }, [userConfig]);
+        const fetchData = async () => {
+            try {
+                const [settingsRes, presetsRes] = await Promise.all([
+                    fetch('/api/posts?settings=true'),
+                    fetch('/api/posts?presets=true')
+                ]);
 
-    // Mettre à jour les settings à partir des gameSettings
-    useEffect(() => {
+                const [settingsData, presetsData] = await Promise.all([
+                    settingsRes.json(),
+                    presetsRes.json()
+                ]);
+
+                setSettings(settingsData.settings || []);
+                setPresets(presetsData.presets || []);
+            } catch (error) {
+                console.error('Erreur chargement données:', error);
+                toast.error('Erreur lors du chargement des paramètres');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const handlePresetChange = (presetName: string) => {
+        // Appliquer tous les settings avec la valeur du preset sélectionné
         const newSettings: Record<string, string> = {};
-        gameSettings.forEach(setting => {
-            newSettings[setting.name] = setting.value;
+        settings.forEach(setting => {
+            newSettings[setting.name] = presetName;
         });
-        setSettings(newSettings);
-    }, [gameSettings]);
-
-    // Fonction pour mettre à jour un paramètre spécifique
-    const updateSetting = (name: string, value: string) => {
-        setGameSettings(prevSettings =>
-            prevSettings.map(setting =>
-                setting.name === name ? { ...setting, value } : setting
-            )
-        );
+        setCustomSettings(newSettings);
     };
 
-    // Soumission du formulaire
+    const handleSettingChange = (settingName: string, value: string) => {
+        setCustomSettings(prev => ({ ...prev, [settingName]: value }));
+    };
+
+    // Vérifier si tous les settings sont remplis
+    const areAllSettingsFilled = () => {
+        return settings.every(setting => customSettings[setting.name] && customSettings[setting.name].trim() !== '');
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -80,19 +100,33 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
             return;
         }
 
+        if (!postType) {
+            toast.error('Veuillez choisir le type de post');
+            return;
+        }
+
+        if (!expectedFps) {
+            toast.error('Veuillez indiquer les FPS attendus');
+            return;
+        }
+
+        if (!areAllSettingsFilled()) {
+            toast.error('Veuillez remplir tous les paramètres graphiques');
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
             const response = await fetch('/api/posts', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     gameId,
                     content,
-                    settings,
-                    postType
+                    settings: customSettings,
+                    postType,
+                    expectedFps
                 }),
             });
 
@@ -102,21 +136,43 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
                 toast.success('Publication créée avec succès');
                 router.refresh();
                 setContent('');
-                setPostType('performance');
-
-                if (onPostCreated) {
-                    onPostCreated();
-                }
+                setPostType('');
+                setExpectedFps('');
+                setCustomSettings({});
+                onPostCreated?.();
             } else {
                 toast.error(data.error || 'Erreur lors de la création du post');
             }
         } catch (error) {
-            console.error('Erreur lors de la soumission:', error);
+            console.error('Erreur soumission:', error);
             toast.error('Erreur de connexion au serveur');
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Chargement...</CardTitle>
+                </CardHeader>
+            </Card>
+        );
+    }
+
+    if (!userConfig) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Configuration requise</CardTitle>
+                    <CardDescription>
+                        Veuillez configurer votre matériel avant de publier
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+        );
+    }
 
     return (
         <Card className="w-full">
@@ -128,56 +184,58 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
             </CardHeader>
             <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-6">
-                    {/* Prévisualisation de la configuration */}
-                    {userConfig && (
-                        <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-md">
-                            <h3 className="text-sm font-medium mb-2">Votre configuration</h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>GPU: {userConfig.gpu_id?.libelle || "Non défini"}</div>
-                                <div>CPU: {userConfig.cpu_id?.libelle || "Non défini"}</div>
-                                <div>RAM: {userConfig.ram_id?.libelle || "Non défini"}</div>
-                                <div>Résolution: {userConfig.screenresolution_id?.width}x{userConfig.screenresolution_id?.height || "Non défini"}</div>
-                            </div>
+                    {/* Configuration utilisateur */}
+                    <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-md">
+                        <h3 className="text-sm font-medium mb-2">Votre configuration</h3>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>GPU: {userConfig.gpu_id?.libelle || "Non défini"}</div>
+                            <div>CPU: {userConfig.cpu_id?.libelle || "Non défini"}</div>
+                            <div>RAM: {userConfig.ram_id?.libelle || "Non défini"}</div>
+                            <div>Résolution: {userConfig.screenresolution_id?.width}x{userConfig.screenresolution_id?.height || "Non défini"}</div>
                         </div>
-                    )}
-
-                    {/* Type de post */}
-                    <div className="space-y-2">
-                        <Label htmlFor="postType">Orientation du post</Label>
-                        <Select value={postType} onValueChange={setPostType}>
-                            <SelectTrigger id="postType">
-                                <SelectValue placeholder="Sélectionner l'orientation" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="equilibre">Équilibré</SelectItem>
-                                <SelectItem value="performance">Performance</SelectItem>
-                                <SelectItem value="qualite">Qualité</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
 
-                    {/* Paramètres du jeu */}
+                    {/* Presets */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-medium">Paramètres du jeu</h3>
+                        <div className="flex items-center justify-between">
+                            <Label>Presets disponibles</Label>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {presets.map((preset) => (
+                                <Button
+                                    key={preset._id}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePresetChange(preset.name)}
+                                    className="h-12"
+                                >
+                                    <div className="text-center">
+                                        <div className="font-medium">{preset.display_name}</div>
+                                    </div>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Settings personnalisés */}
+                    <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {gameSettings.map((setting) => (
-                                <div key={setting.name} className="space-y-1">
-                                    <Label htmlFor={setting.name} className="capitalize">
-                                        {setting.name.replace('_', ' ')}
-                                    </Label>
+                            {settings.map((setting) => (
+                                <div key={setting._id} className="space-y-1">
+                                    <Label className="text-sm">{setting.display_name}</Label>
                                     <Select
-                                        value={setting.value}
-                                        onValueChange={(value) => updateSetting(setting.name, value)}
+                                        value={customSettings[setting.name] || ''}
+                                        onValueChange={(value) => handleSettingChange(setting.name, value)}
                                     >
-                                        <SelectTrigger id={setting.name}>
-                                            <SelectValue placeholder={`Sélectionner ${setting.name}`} />
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {setting.options.map(option => (
-                                                <SelectItem key={`${setting.name}-${option}`} value={option}>
-                                                    {option}
-                                                </SelectItem>
-                                            ))}
+                                            <SelectItem value="Low">Faible</SelectItem>
+                                            <SelectItem value="Medium">Moyen</SelectItem>
+                                            <SelectItem value="High">Élevé</SelectItem>
+                                            <SelectItem value="Ultra">Ultra</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -185,21 +243,61 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ gameId, gameName, userC
                         </div>
                     </div>
 
-                    {/* Contenu du post */}
+                    {/* Contenu */}
                     <div className="space-y-2">
                         <Label htmlFor="content">Votre expérience</Label>
                         <Textarea
                             id="content"
-                            placeholder="Partagez votre expérience avec ces réglages (performances, qualité visuelle...)"
+                            placeholder="Partagez votre expérience avec ces réglages..."
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            rows={5}
+                            rows={4}
                             className="resize-none"
                         />
                     </div>
+
+                    {/* Type de post et FPS attendus */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="postType">Orientation du post</Label>
+                            <Select value={postType} onValueChange={setPostType}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="equilibre">Équilibré</SelectItem>
+                                    <SelectItem value="performance">Performance</SelectItem>
+                                    <SelectItem value="qualite">Qualité</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="expectedFps">FPS attendus</Label>
+                            <Select value={expectedFps} onValueChange={setExpectedFps}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="-60">Moins de 60 FPS</SelectItem>
+                                    <SelectItem value="60-80">60-80 FPS</SelectItem>
+                                    <SelectItem value="80-100">80-100 FPS</SelectItem>
+                                    <SelectItem value="100-120">100-120 FPS</SelectItem>
+                                    <SelectItem value="+120">Plus de 120 FPS</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    
                 </CardContent>
-                <CardFooter className="flex justify-end pt-6">
-                    <Button variant={"purple"} className="cursor-pointer" type="submit" disabled={isSubmitting || !userConfig}>
+
+                <CardFooter className="flex justify-end">
+                    <Button
+                        variant="purple"
+                        type="submit"
+                        disabled={isSubmitting || !areAllSettingsFilled()}
+                        className="cursor-pointer"
+                    >
                         {isSubmitting ? 'Publication...' : 'Publier'}
                     </Button>
                 </CardFooter>
