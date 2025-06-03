@@ -142,7 +142,7 @@ export default function SearchPage() {
     const fetchNewGames = async () => {
         try {
             const currentTime = Math.floor(Date.now() / 1000);
-            const sixMonthsAgo = currentTime - 60 * 60 * 24 * 180; // 6 mois en arrière
+            const oneYearAgo = currentTime - 60 * 60 * 24 * 365; // 1 an en arrière
 
             const response = await fetch('/api/igdb', {
                 method: 'POST',
@@ -153,7 +153,7 @@ export default function SearchPage() {
                     endpoint: 'games',
                     query: `
                         fields name, cover.image_id, first_release_date, rating, total_rating, hypes;
-                        where first_release_date > ${sixMonthsAgo}
+                        where first_release_date > ${oneYearAgo}
                         & first_release_date < ${currentTime}
                         & cover != null 
                         & hypes >= 33
@@ -218,25 +218,24 @@ export default function SearchPage() {
                 <div className="mt-16">
                     <h2 className="text-xl sm:text-2xl font-semibold mb-4">Nouveautés</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                            {newGames.length > 0 ? (
-                                newGames.map(game => (
-                                    <GameCard key={game.id} game={game} />
-                                ))
-                            ) : (
-                                [...Array(10)].map((_, i) => (
-                                    <div key={i} className="space-y-2">
-                                        <Skeleton
-                                            className="bg-gray-200 rounded-lg"
-                                            style={{ height: 256 }}
-                                        />
-                                        <Skeleton className="h-4 w-[90%]" />
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                        {newGames.length > 0 ? (
+                            newGames.map(game => (
+                                <GameCard key={game.id} game={game} />
+                            ))
+                        ) : (
+                            [...Array(10)].map((_, i) => (
+                                <div key={i} className="space-y-2">
+                                    <Skeleton
+                                        className="bg-gray-200 rounded-lg"
+                                        style={{ height: 256 }}
+                                    />
+                                    <Skeleton className="h-4 w-[90%]" />
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
-
-            );
+        </div>
+    );
 }

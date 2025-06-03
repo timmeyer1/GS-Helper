@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Créer un nouveau post
+// ADD - Créer un nouveau post
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
@@ -229,6 +229,36 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Erreur lors de la création du post:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// DELETE - Supprimer un post
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession();
+    
+    if (!session || !session.user?.email) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    await connectToDatabase();
+    
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
+    }
+
+    const post = await Post.findOne({ _id: params.id, user_id: user._id });
+    if (!post) {
+      return NextResponse.json({ error: "Post non trouvé ou non autorisé" }, { status: 404 });
+    }
+
+    await Post.deleteOne({ _id: params.id });
+    return NextResponse.json({ message: "Post supprimé avec succès" });
+
+  } catch (error) {
+    console.error("Erreur lors de la suppression du post:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

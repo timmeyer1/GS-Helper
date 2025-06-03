@@ -10,8 +10,8 @@ import UserProfileEditDialog from "@/components/user/UserProfileEditDialog";
 import HardwareConfigDialog from "@/components/user/HardwareConfigDialog";
 import { HardwareItem } from "@/components/user/HardwareSelectDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserPosts } from "@/components/user/posts/UserPosts";
 
-// Types pour les données utilisateur
 interface User {
   id: string;
   name: string;
@@ -31,6 +31,53 @@ interface UserData {
   config: UserConfig | null;
 }
 
+// Composants de skeleton optimisés
+const SkeletonSection = ({ lines = 3 }: { lines?: number }) => (
+  <div className="space-y-3">
+    {[...Array(lines)].map((_, i) => (
+      <div key={i} className="flex flex-col sm:flex-row sm:justify-between gap-2">
+        <Skeleton className="h-5 w-24 sm:w-32" />
+        <Skeleton className="h-5 w-full sm:w-48" />
+      </div>
+    ))}
+  </div>
+);
+
+const PageSkeleton = () => (
+  <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
+    <div className="container mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Skeleton className="h-10 w-48 md:h-12 md:w-64" />
+      </div>
+      <Skeleton className="h-6 w-full max-w-lg" />
+
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
+        <SectionSkeleton title="Informations personnelles" />
+        <SectionSkeleton title="Ma Configuration PC" lines={4} />
+        <SectionSkeleton title="Mes posts" lines={2} />
+      </div>
+    </div>
+  </div>
+);
+
+const SectionSkeleton = ({ title, lines = 3 }: { title: string; lines?: number }) => (
+  <section className="pb-4 border-b border-gray-200 last:border-b-0 last:pb-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-9 w-full sm:w-64" />
+    </div>
+    <SkeletonSection lines={lines} />
+  </section>
+);
+
+// Configuration des éléments hardware
+const HARDWARE_CONFIGS = [
+  { key: 'gpu_id', label: 'Carte graphique' },
+  { key: 'cpu_id', label: 'Processeur' },
+  { key: 'ram_id', label: 'Mémoire RAM', hasType: true },
+  { key: 'screenresolution_id', label: 'Résolution d\'écran', hasDetails: true }
+] as const;
+
 const Profile = () => {
   const router = useRouter();
   const { data: session, status } = useSession({
@@ -42,24 +89,22 @@ const Profile = () => {
 
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userProfileDialogOpen, setUserProfileDialogOpen] = useState(false);
-  const [hardwareConfigDialogOpen, setHardwareConfigDialogOpen] = useState(false);
+  const [dialogs, setDialogs] = useState({
+    userProfile: false,
+    hardwareConfig: false
+  });
 
-  // Charger les données utilisateur
   useEffect(() => {
     const fetchUserData = async () => {
       if (status === "authenticated" && session) {
         try {
           const response = await fetch("/api/user");
-
-          if (!response.ok) {
-            throw new Error("Erreur lors de la récupération des données utilisateur");
-          }
+          if (!response.ok) throw new Error("Erreur de récupération");
 
           const data = await response.json() as UserData;
           setUserData(data);
         } catch (error) {
-          console.error("Erreur lors de la récupération des données utilisateur:", error);
+          console.error("Erreur utilisateur:", error);
           toast.error("Impossible de charger vos données utilisateur");
         } finally {
           setLoading(false);
@@ -70,89 +115,19 @@ const Profile = () => {
     fetchUserData();
   }, [status, session]);
 
-  // Gérer la mise à jour des données utilisateur
   const handleUserUpdated = (user: User) => {
-    setUserData((prev) => (prev ? { ...prev, user } : null));
+    setUserData(prev => prev ? { ...prev, user } : null);
   };
 
-  // Gérer la mise à jour de la configuration matérielle
   const handleConfigUpdated = (config: UserConfig) => {
-    setUserData((prev) => (prev ? { ...prev, config } : null));
+    setUserData(prev => prev ? { ...prev, config } : null);
   };
 
-  // Composant pour le skeleton loader des informations utilisateur
-  const UserInfoSkeleton = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-5 w-32" />
-      </div>
-      <div className="flex justify-between">
-        <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-5 w-48" />
-      </div>
-      <div className="flex justify-between">
-        <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-5 w-28" />
-      </div>
-    </div>
-  );
+  const toggleDialog = (dialog: keyof typeof dialogs) => {
+    setDialogs(prev => ({ ...prev, [dialog]: !prev[dialog] }));
+  };
 
-  // Composant pour le skeleton loader de la configuration PC
-  const HardwareConfigSkeleton = () => (
-    <div className="space-y-4">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="flex justify-between">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-5 w-48" />
-        </div>
-      ))}
-    </div>
-  );
-
-  // Skeleton pour la page entière pendant le chargement initial
-  const PageSkeleton = () => (
-    <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
-      <div className="container mx-auto">
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center">
-            <Skeleton className="h-10 w-48 md:h-12 md:w-64" />
-          </div>
-        </div>
-
-        {/* Description Skeleton */}
-        <Skeleton className="h-6 w-full max-w-lg mb-6" />
-
-        {/* Informations Skeleton */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
-          <section className="pb-4 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-9 w-full sm:w-64" />
-            </div>
-            <UserInfoSkeleton />
-          </section>
-
-          {/* Configuration PC Skeleton */}
-          <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <Skeleton className="h-8 w-56" />
-              <Skeleton className="h-9 w-full sm:w-64" />
-            </div>
-            <HardwareConfigSkeleton />
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Afficher un écran de chargement complet pendant le chargement initial
-  if (status === "loading") {
-    return <PageSkeleton />;
-  }
-
-  // Si pas de session, on ne rend rien car onUnauthenticated s'en chargera
+  if (status === "loading") return <PageSkeleton />;
   if (!session) return null;
 
   return (
@@ -160,51 +135,53 @@ const Profile = () => {
       <div className="container mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
-              Mon Profil
-            </h1>
-          </div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
+            Mon Profil
+          </h1>
         </div>
 
-        {/* Description */}
         <p className="text-sm sm:text-base md:text-lg text-gray-700 mb-6">
           Personnalisez votre profil et configurez votre matériel pour optimiser vos performances en jeu.
         </p>
 
-        {/* Informations */}
+        {/* Sections principales */}
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
+          {/* Informations personnelles */}
           <section className="pb-4 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Informations personnelles</h2>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">
+                Informations personnelles
+              </h2>
               <Button
-                className="cursor-pointer w-full sm:w-auto"
                 variant="outline"
                 size="sm"
-                onClick={() => setUserProfileDialogOpen(true)}
+                onClick={() => toggleDialog('userProfile')}
+                className="w-full sm:w-auto"
               >
                 <UserRoundCog className="h-4 w-4 mr-1" />
-                <span>Modifier les informations</span>
+                Modifier les informations
               </Button>
             </div>
 
             {loading ? (
-              <UserInfoSkeleton />
+              <SkeletonSection />
             ) : userData?.user ? (
               <div className="space-y-2 text-sm sm:text-base">
-                <p className="flex flex-col sm:flex-row sm:justify-between">
+                <div className="flex flex-col sm:flex-row sm:justify-between">
                   <span className="font-semibold">Nom:</span>
                   <span className="ml-0 sm:ml-2">{userData.user.name}</span>
-                </p>
-                <p className="flex flex-col sm:flex-row sm:justify-between">
+                </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between">
                   <span className="font-semibold">Email:</span>
                   <span className="ml-0 sm:ml-2 break-all">{userData.user.email}</span>
-                </p>
-                <p className="flex flex-col sm:flex-row sm:justify-between">
+                </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between">
                   <span className="font-semibold">Statut:</span>
-                  <span className="ml-0 sm:ml-2">{userData.user.isAdmin ? "Administrateur" : "Utilisateur"}</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
+                  <span className="ml-0 sm:ml-2">
+                    {userData.user.isAdmin ? "Administrateur" : "Utilisateur"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
                   Les informations peuvent prendre effet après une reconnexion.
                 </p>
               </div>
@@ -214,81 +191,74 @@ const Profile = () => {
           </section>
 
           {/* Configuration PC */}
-          <section>
+          <section className="pb-4 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Ma Configuration PC</h2>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">
+                Ma Configuration PC
+              </h2>
               <Button
-                className="cursor-pointer w-full sm:w-auto"
                 variant="outline"
                 size="sm"
-                onClick={() => setHardwareConfigDialogOpen(true)}
+                onClick={() => toggleDialog('hardwareConfig')}
+                className="w-full sm:w-auto"
               >
                 <Settings className="h-4 w-4 mr-1" />
-                <span>Modifier la configuration</span>
+                Modifier la configuration
               </Button>
             </div>
 
             {loading ? (
-              <HardwareConfigSkeleton />
+              <SkeletonSection lines={4} />
             ) : (
-              <ul className="space-y-3 text-sm sm:text-base">
-                <li className="flex flex-col sm:flex-row sm:justify-between">
-                  <span className="font-medium">Carte graphique:</span>
-                  <span className="ml-0 sm:ml-2 font-semibold">
-                    {userData?.config?.gpu_id?.libelle || "Non configuré"}
-                  </span>
-                </li>
-                <li className="flex flex-col sm:flex-row sm:justify-between">
-                  <span className="font-medium">Processeur:</span>
-                  <span className="ml-0 sm:ml-2 font-semibold">
-                    {userData?.config?.cpu_id?.libelle || "Non configuré"}
-                  </span>
-                </li>
-                <li className="flex flex-col sm:flex-row sm:justify-between">
-                  <span className="font-medium">Mémoire RAM:</span>
-                  <span className="ml-0 sm:ml-2">
-                    <span className="font-semibold">
-                      {userData?.config?.ram_id?.libelle || "Non configuré"}
-                    </span>
-                    {userData?.config?.ram_id?.type && (
-                      <span className="text-gray-500 italic font-normal">
-                        {" "}({userData.config.ram_id.type})
-                      </span>
-                    )}
-                  </span>
-                </li>
-                <li className="flex flex-col sm:flex-row sm:justify-between">
-                  <span className="font-medium">Résolution d&apos;écran:</span>
-                  <span className="ml-0 sm:ml-2">
-                    <span className="font-semibold">
-                      {userData?.config?.screenresolution_id?.libelle || "Non configuré"}
-                    </span>
-                    {(userData?.config?.screenresolution_id?.width &&
-                      userData?.config?.screenresolution_id?.height &&
-                      userData?.config?.screenresolution_id?.aspectRatio) && (
-                        <span className="text-gray-500 italic font-normal">
-                          {" "}({userData.config.screenresolution_id.width}x{userData.config.screenresolution_id.height} - {userData.config.screenresolution_id.aspectRatio})
+              <div className="space-y-3 text-sm sm:text-base">
+                {HARDWARE_CONFIGS.map(({ key, label, hasType, hasDetails }) => {
+                  const item = userData?.config?.[key];
+                  return (
+                    <div key={key} className="flex flex-col sm:flex-row sm:justify-between">
+                      <span className="font-medium">{label}:</span>
+                      <span className="ml-0 sm:ml-2">
+                        <span className="font-semibold">
+                          {item?.libelle || "Non configuré"}
                         </span>
-                      )}
-                  </span>
-                </li>
-              </ul>
+                        {hasType && item?.type && (
+                          <span className="text-gray-500 italic font-normal">
+                            {" "}({item.type})
+                          </span>
+                        )}
+                        {hasDetails && item?.width && item?.height && item?.aspectRatio && (
+                          <span className="text-gray-500 italic font-normal">
+                            {" "}({item.width}x{item.height} - {item.aspectRatio})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
+          </section>
+
+          {/* Mes posts */}
+          <section>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Mes posts</h2>
+            </div>
+            <UserPosts />
           </section>
         </div>
       </div>
 
       {/* Dialogues */}
       <UserProfileEditDialog
-        open={userProfileDialogOpen}
-        onOpenChange={setUserProfileDialogOpen}
+        open={dialogs.userProfile}
+        onOpenChange={() => toggleDialog('userProfile')}
         user={userData?.user || null}
         onUserUpdated={handleUserUpdated}
       />
 
       <HardwareConfigDialog
-        open={hardwareConfigDialogOpen}
-        onOpenChange={setHardwareConfigDialogOpen}
+        open={dialogs.hardwareConfig}
+        onOpenChange={() => toggleDialog('hardwareConfig')}
         config={userData?.config || null}
         onConfigUpdated={handleConfigUpdated}
       />
