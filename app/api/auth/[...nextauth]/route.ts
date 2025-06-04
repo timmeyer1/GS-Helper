@@ -4,8 +4,10 @@ import connectToDatabase from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 import CredentialsProvider from "next-auth/providers/credentials";
 import Github from "next-auth/providers/github";
+import { NextAuthOptions } from "next-auth";
 
-const handler = NextAuth({
+// Exporter la configuration NextAuth
+export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
@@ -84,6 +86,8 @@ const handler = NextAuth({
     signIn: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

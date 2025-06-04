@@ -8,6 +8,9 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "GS Helper",
   description: "Détecte ta configuration et optimise tes jeux",
+  icons: {
+    icon: '/logo/logo_hover.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
