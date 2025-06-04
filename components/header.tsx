@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MonitorSmartphone, Settings2, Gamepad2, Plus } from 'lucide-react';
+import { MonitorSmartphone, Settings2, Gamepad2, Plus, Search, X } from 'lucide-react';
 import UserButton from './user-button';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
 import { Separator } from './ui/separator';
@@ -20,6 +20,7 @@ export default function Header() {
     const [searchSuggestions, setSearchSuggestions] = useState<Game[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [showMobileSearch, setShowMobileSearch] = useState(false);
     const router = useRouter();
     const [results, setResults] = useState<Game[]>([]);
     const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -75,6 +76,9 @@ export default function Header() {
             clearTimeout(typingTimeout);
         }
 
+        // Fermer la popup mobile après recherche
+        setShowMobileSearch(false);
+
         setIsLoading(true);
         setHasSearched(true);
 
@@ -108,6 +112,7 @@ export default function Header() {
     const selectSuggestion = (game: Game) => {
         setQuery(game.name);
         setSearchSuggestions([]);
+        setShowMobileSearch(false); // Fermer la popup mobile
         router.push(`/games/${game.id}`);
     };
 
@@ -190,128 +195,158 @@ export default function Header() {
     };
 
     return (
-        <header className="flex justify-between items-center p-2 sm:p-4 border-b bg-white shadow-sm">
-            {/* Logo */}
-            <Link
-                href="/"
-                className="block"
-                onMouseEnter={() => setLogoState('hover')}
-                onMouseLeave={() => setLogoState('default')}
-                onMouseDown={() => setLogoState('pressed')}
-                onMouseUp={() => setLogoState('hover')}
-            >
-                <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-transform duration-200 hover:scale-105 active:scale-95">
-                    <Image
-                        src={getLogoSrc()}
-                        alt="GS Helper Logo"
-                        fill
-                        className="object-contain"
-                        priority
-                    />
-                </div>
-            </Link>
+        <>
+            <header className="flex justify-between items-center p-2 sm:p-4 border-b bg-white shadow-sm">
+                {/* Logo */}
+                <Link
+                    href="/"
+                    className="block"
+                    onMouseEnter={() => setLogoState('hover')}
+                    onMouseLeave={() => setLogoState('default')}
+                    onMouseDown={() => setLogoState('pressed')}
+                    onMouseUp={() => setLogoState('hover')}
+                >
+                    <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-transform duration-200 hover:scale-105 active:scale-95">
+                        <Image
+                            src={getLogoSrc()}
+                            alt="GS Helper Logo"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
+                </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex md:items-center md:space-x-4">
-                <NavigationMenu>
-                    <NavigationMenuList>
-                        {/* Jeux */}
-                        <NavigationMenuItem>
-                            <NavigationMenuTrigger className="cursor-pointer">
-                                <Gamepad2 className="h-4 w-4 mr-2" />
-                                Jeux
-                            </NavigationMenuTrigger>
-                            <NavigationMenuContent>
-                                <ul className="w-[600px] left-0">
-                                    <span className="px-4 py-2 text-gray-500 text-sm font-bold">Jeux populaires :</span>
-                                    <li className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 p-2 px-4">
-                                        {isLoading ? (
-                                            <GameCoverSkeletons />
-                                        ) : (
-                                            games.map((game) => (
-                                                <Link key={game.id} href={`/games/${game.id}`} className="group aspect-[3/4]">
-                                                    <ul>
-                                                        {game.cover ? (
-                                                            <img
-                                                                src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
-                                                                alt={game.name}
-                                                                className="w-full h-full object-cover rounded-lg mb-2 group-hover:scale-105 group-hover:shadow-xl transition-transform duration-300"
-                                                            />
-                                                        ) : (
-                                                            <Skeleton className="h-full w-full rounded-lg" />
-                                                        )}
-                                                    </ul>
-                                                </Link>
-                                            ))
-                                        )}
-                                    </li>
-                                </ul>
-                                <div className="px-4 pb-3 text-gray-500 text-sm flex items-center">
-                                    <Link href="/search" className="flex items-center hover:bg-gray-100 hover:text-gray-700 p-1">
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        <span>Voir plus</span>
-                                    </Link>
-                                </div>
+                {/* Desktop Navigation */}
+                <nav className="hidden md:flex md:items-center md:space-x-4">
+                    <NavigationMenu>
+                        <NavigationMenuList>
+                            {/* Jeux */}
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className="cursor-pointer">
+                                    <Gamepad2 className="h-4 w-4 mr-2" />
+                                    Jeux
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent>
+                                    <ul className="w-[600px] left-0">
+                                        <span className="px-4 py-2 text-gray-500 text-sm font-bold">Jeux populaires :</span>
+                                        <li className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 p-2 px-4">
+                                            {isLoading ? (
+                                                <GameCoverSkeletons />
+                                            ) : (
+                                                games.map((game) => (
+                                                    <Link key={game.id} href={`/games/${game.id}`} className="group aspect-[3/4]">
+                                                        <ul>
+                                                            {game.cover ? (
+                                                                <img
+                                                                    src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
+                                                                    alt={game.name}
+                                                                    className="w-full h-full object-cover rounded-lg mb-2 group-hover:scale-105 group-hover:shadow-xl transition-transform duration-300"
+                                                                />
+                                                            ) : (
+                                                                <Skeleton className="h-full w-full rounded-lg" />
+                                                            )}
+                                                        </ul>
+                                                    </Link>
+                                                ))
+                                            )}
+                                        </li>
+                                    </ul>
+                                    <div className="px-4 pb-3 text-gray-500 text-sm flex items-center">
+                                        <Link href="/search" className="flex items-center hover:bg-gray-100 hover:text-gray-700 p-1">
+                                            <Plus className="h-4 w-4 mr-1" />
+                                            <span>Voir plus</span>
+                                        </Link>
+                                    </div>
 
-                                <Separator className="mb-4" />
-                                <SearchHeader
-                                    query={query}
-                                    setQuery={handleQueryChange}
-                                    onSearch={handleSearch}
-                                    suggestions={searchSuggestions}
-                                    selectSuggestion={selectSuggestion}
-                                    isTyping={isTyping}
-                                    isLoading={isLoading}
-                                    showSuggestions={showSuggestions}
-                                    setShowSuggestions={setShowSuggestions}
-                                />
-                            </NavigationMenuContent>
-                        </NavigationMenuItem>
+                                    <Separator className="mb-4" />
+                                    <SearchHeader
+                                        query={query}
+                                        setQuery={handleQueryChange}
+                                        onSearch={handleSearch}
+                                        suggestions={searchSuggestions}
+                                        selectSuggestion={selectSuggestion}
+                                        isTyping={isTyping}
+                                        isLoading={isLoading}
+                                        showSuggestions={showSuggestions}
+                                        setShowSuggestions={setShowSuggestions}
+                                    />
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
 
-                        {/* Scanneur */}
-                        <NavigationMenuItem>
-                            <NavigationMenuTrigger className="cursor-pointer">
-                                <Settings2 className="h-4 w-4 mr-2" />
-                                Scanneur
-                            </NavigationMenuTrigger>
-                            <NavigationMenuContent>
-                                <ul className="w-64">
-                                    <Button variant="ghost" className="w-full justify-start cursor-pointer">
-                                        <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
-                                    </Button>
-                                    <Button variant="ghost" className="w-full justify-start cursor-pointer">
-                                        <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
-                                    </Button>
-                                </ul>
-                            </NavigationMenuContent>
-                        </NavigationMenuItem>
-                    </NavigationMenuList>
-                </NavigationMenu>
+                            {/* Scanneur */}
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className="cursor-pointer">
+                                    <Settings2 className="h-4 w-4 mr-2" />
+                                    Scanneur
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent>
+                                    <ul className="w-64">
+                                        <Button variant="ghost" className="w-full justify-start cursor-pointer">
+                                            <MonitorSmartphone className="mr-2 h-5 w-5" /> Détection automatique
+                                        </Button>
+                                        <Button variant="ghost" className="w-full justify-start cursor-pointer">
+                                            <Settings2 className="mr-2 h-5 w-5" /> Choisir manuellement
+                                        </Button>
+                                    </ul>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
+                        </NavigationMenuList>
+                    </NavigationMenu>
 
-                <div className="flex space-x-4">
+                    <div className="flex space-x-4">
+                        <UserButton />
+                    </div>
+                </nav>
+
+                {/* Mobile Actions - Search Button + User Button */}
+                <div className="flex items-center space-x-2 md:hidden">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowMobileSearch(true)}
+                        className="p-2"
+                    >
+                        <Search className="h-5 w-5" />
+                    </Button>
                     <UserButton />
                 </div>
-            </nav>
+            </header>
 
-            {/* Mobile Search Bar */}
-            <div className="flex-1 mx-4 md:hidden">
-                <SearchHeader
-                    query={query}
-                    setQuery={handleQueryChange}
-                    onSearch={handleSearch}
-                    suggestions={searchSuggestions}
-                    selectSuggestion={selectSuggestion}
-                    isTyping={isTyping}
-                    isLoading={isLoading}
-                    showSuggestions={showSuggestions}
-                    setShowSuggestions={setShowSuggestions}
-                />
-            </div>
+            {/* Mobile Search Popup */}
+            {showMobileSearch && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
+                    <div className="bg-white w-full min-h-screen">
+                        {/* Popup Header */}
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h2 className="text-lg font-semibold">Rechercher un jeu</h2>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowMobileSearch(false)}
+                                className="p-2"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
 
-            {/* Mobile User Button */}
-            <div className="md:hidden">
-                <UserButton />
-            </div>
-        </header>
+                        {/* Search Content */}
+                        <div className="p-4">
+                            <SearchHeader
+                                query={query}
+                                setQuery={handleQueryChange}
+                                onSearch={handleSearch}
+                                suggestions={searchSuggestions}
+                                selectSuggestion={selectSuggestion}
+                                isTyping={isTyping}
+                                isLoading={isLoading}
+                                showSuggestions={showSuggestions}
+                                setShowSuggestions={setShowSuggestions}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
