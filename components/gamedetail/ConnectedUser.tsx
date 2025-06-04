@@ -57,51 +57,6 @@ const ConnectedUser: React.FC<ConnectedUserProps> = ({ gameName, gameId, error, 
             ) : (
                 // <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="">
-                    {/* <Card>
-                        <CardHeader>
-                            <CardTitle>Votre configuration détectée</CardTitle>
-                            <CardDescription>
-                                Configuration matérielle récupérée depuis votre profil
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {userConfig && (
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Carte graphique:</span>
-                                        <span>{userConfig.gpu_id?.libelle || "Non configuré"}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Processeur:</span>
-                                        <span>{userConfig.cpu_id?.libelle || "Non configuré"}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Mémoire RAM:</span>
-                                        <span>{userConfig.ram_id?.libelle || "Non configuré"}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Résolution d'écran:</span>
-                                        <span>
-                                            {userConfig.screenresolution_id?.width}x{userConfig.screenresolution_id?.height}
-                                            {userConfig.screenresolution_id?.libelle ? ` (${userConfig.screenresolution_id?.libelle})` : ''}
-                                        </span>
-                                    </div>
-
-                                    <div className="text-xs text-gray-500 mt-4">
-                                        <p>
-                                            Vous pouvez modifier votre configuration matérielle dans votre
-                                            <span
-                                                className="font-medium cursor-pointer text-purple-600 ml-1"
-                                                onClick={() => router.push('/profile')}
-                                            >
-                                                profil
-                                            </span>
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card> */}
                     <PostsCard gameId={gameId} userConfig={userConfig || undefined} />
                 </div>
             )}

@@ -298,85 +298,91 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredPosts.map((post) => (
-                                <Card
+                                <Link
                                     key={post._id}
-                                    className="h-[320px] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer group"
+                                    href={`/posts/${post._id}`}
+                                    className="no-underline text-inherit"
                                 >
-                                    <CardContent className="p-4 h-full flex flex-col">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <Avatar className="h-8 w-8 flex-shrink-0">
-                                                    <AvatarImage
-                                                        src={post.user_id?.image}
-                                                        alt={`Avatar de ${post.user_id?.name || 'utilisateur'}`}
-                                                    />
-                                                    <AvatarFallback className="bg-sky-700 text-white text-xs">
-                                                        {(post.user_id?.name?.charAt(0) || '?').toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="text-sm font-medium truncate">
-                                                        {post.user_id?.name || 'Utilisateur anonyme'}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {new Date(post.created_at).toLocaleDateString('fr-FR')}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <UpvoteButton
-                                                postId={post._id}
-                                                initialUpvotes={post.votes.upvotes}
-                                                hasUserVoted={post.hasUserVoted}
-                                                onVoteChange={(upvotes, hasUserVoted) =>
-                                                    handleVoteChange(post._id, upvotes, hasUserVoted)
-                                                }
-                                            />
-                                        </div>
-
-                                        <div className="mb-3 flex items-center justify-between">
-                                            <PostTypeBadge type={post.postType} />
-                                            {post.expectedFps && (
-                                                <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                                                    {FPS_TRANSLATIONS[post.expectedFps] || post.expectedFps}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex-1 flex flex-col">
-                                            <div className="mb-3 flex-1">
-                                                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                                                    {truncateText(post.content)}
-                                                </p>
-                                            </div>
-
-                                            {/* Affichage des paramètres graphiques */}
-                                            {post.settings && Object.keys(post.settings).length > 0 && (
-                                                <div className="space-y-1 text-xs mb-3 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-md">
-                                                    <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                        Paramètres graphiques:
-                                                    </div>
-                                                    {Object.entries(post.settings)
-                                                        .slice(0, 4)
-                                                        .map(([key, value]) => (
-                                                            <div key={key} className="flex justify-between items-center">
-                                                                <span className="text-gray-600 dark:text-gray-400">
-                                                                    {translateSettingName(key)}:
-                                                                </span>
-                                                                <span className="font-medium text-gray-800 dark:text-gray-200">
-                                                                    {translateSettingValue(String(value))}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    {Object.keys(post.settings).length > 4 && (
-                                                        <div className="text-center text-gray-500 italic">
-                                                            +{Object.keys(post.settings).length - 4} autres...
+                                    <Card
+                                        key={post._id}
+                                        className="h-[320px] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer group"
+                                    >
+                                        <CardContent className="p-4 h-full flex flex-col">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                                        <AvatarImage
+                                                            src={post.user_id?.image}
+                                                            alt={`Avatar de ${post.user_id?.name || 'utilisateur'}`}
+                                                        />
+                                                        <AvatarFallback className="bg-sky-700 text-white text-xs">
+                                                            {(post.user_id?.name?.charAt(0) || '?').toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="text-sm font-medium truncate">
+                                                            {post.user_id?.name || 'Utilisateur anonyme'}
                                                         </div>
-                                                    )}
+                                                        <div className="text-xs text-gray-500">
+                                                            {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                                <UpvoteButton
+                                                    postId={post._id}
+                                                    initialUpvotes={post.votes.upvotes}
+                                                    hasUserVoted={post.hasUserVoted}
+                                                    onVoteChange={(upvotes, hasUserVoted) =>
+                                                        handleVoteChange(post._id, upvotes, hasUserVoted)
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="mb-3 flex items-center justify-between">
+                                                <PostTypeBadge type={post.postType} />
+                                                {post.expectedFps && (
+                                                    <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                                                        {FPS_TRANSLATIONS[post.expectedFps] || post.expectedFps}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 flex flex-col">
+                                                <div className="mb-3 flex-1">
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                                        {truncateText(post.content)}
+                                                    </p>
+                                                </div>
+
+                                                {/* Affichage des paramètres graphiques */}
+                                                {post.settings && Object.keys(post.settings).length > 0 && (
+                                                    <div className="space-y-1 text-xs mb-3 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-md">
+                                                        <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                            Paramètres graphiques:
+                                                        </div>
+                                                        {Object.entries(post.settings)
+                                                            .slice(0, 4)
+                                                            .map(([key, value]) => (
+                                                                <div key={key} className="flex justify-between items-center">
+                                                                    <span className="text-gray-600 dark:text-gray-400">
+                                                                        {translateSettingName(key)}:
+                                                                    </span>
+                                                                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                                                                        {translateSettingValue(String(value))}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        {Object.keys(post.settings).length > 4 && (
+                                                            <div className="text-center text-gray-500 italic">
+                                                                +{Object.keys(post.settings).length - 4} autres...
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
                             ))}
                         </div>
 
