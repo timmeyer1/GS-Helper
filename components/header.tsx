@@ -1,16 +1,17 @@
-'use client';
+"use client";
+
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MonitorSmartphone, Settings2, Gamepad2, Menu, X, Plus } from 'lucide-react';
+import { MonitorSmartphone, Settings2, Gamepad2, Plus } from 'lucide-react';
 import UserButton from './user-button';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuContent, NavigationMenuTrigger, NavigationMenuList } from '@/components/ui/navigation-menu';
 import { Separator } from './ui/separator';
 import { SearchHeader } from './SearchHeader';
 import { Game } from '@/types/game';
 import { useRouter } from 'next/navigation';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function Header() {
     const [games, setGames] = useState<Game[]>([]);
@@ -23,7 +24,7 @@ export default function Header() {
     const [results, setResults] = useState<Game[]>([]);
     const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [logoState, setLogoState] = useState<'default' | 'hover' | 'pressed'>('default');
 
     // Fetch games
     useEffect(() => {
@@ -96,8 +97,6 @@ export default function Header() {
 
             const data = await response.json();
             setResults(data);
-            // Si recherche depuis le mobile menu, ferme le menu
-            setMobileMenuOpen(false);
         } catch (error) {
             console.error('Erreur lors de la recherche:', error);
         } finally {
@@ -109,7 +108,6 @@ export default function Header() {
     const selectSuggestion = (game: Game) => {
         setQuery(game.name);
         setSearchSuggestions([]);
-        setMobileMenuOpen(false); // Ferme le menu mobile si ouvert
         router.push(`/games/${game.id}`);
     };
 
@@ -179,14 +177,39 @@ export default function Header() {
         </>
     );
 
+    // Fonction pour obtenir le bon logo selon l'état
+    const getLogoSrc = () => {
+        switch (logoState) {
+            case 'hover':
+                return '/logo/logo_hover.png';
+            case 'pressed':
+                return '/logo/logo_press.png';
+            default:
+                return '/logo/logo.png';
+        }
+    };
+
     return (
         <header className="flex justify-between items-center p-2 sm:p-4 border-b bg-white shadow-sm">
             {/* Logo */}
-            <Button className="text-lg sm:text-xl hover:border-2 h-10" variant="ghost">
-                <Link href="/">
-                    GS Helper
-                </Link>
-            </Button>
+            <Link
+                href="/"
+                className="block"
+                onMouseEnter={() => setLogoState('hover')}
+                onMouseLeave={() => setLogoState('default')}
+                onMouseDown={() => setLogoState('pressed')}
+                onMouseUp={() => setLogoState('hover')}
+            >
+                <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-transform duration-200 hover:scale-105 active:scale-95">
+                    <Image
+                        src={getLogoSrc()}
+                        alt="GS Helper Logo"
+                        fill
+                        className="object-contain"
+                        priority
+                    />
+                </div>
+            </Link>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex md:items-center md:space-x-4">
@@ -270,98 +293,24 @@ export default function Header() {
                 </div>
             </nav>
 
-            {/* Mobile Navigation avec Sheet */}
-            <div className="flex items-center space-x-2 md:hidden">
+            {/* Mobile Search Bar */}
+            <div className="flex-1 mx-4 md:hidden">
+                <SearchHeader
+                    query={query}
+                    setQuery={handleQueryChange}
+                    onSearch={handleSearch}
+                    suggestions={searchSuggestions}
+                    selectSuggestion={selectSuggestion}
+                    isTyping={isTyping}
+                    isLoading={isLoading}
+                    showSuggestions={showSuggestions}
+                    setShowSuggestions={setShowSuggestions}
+                />
+            </div>
+
+            {/* Mobile User Button */}
+            <div className="md:hidden">
                 <UserButton />
-
-                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden">
-                            <Menu className="h-5 w-5" />
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-[90%] sm:w-[350px] pt-12">
-                        <div className="flex flex-col space-y-6">
-                            {/* Mobile search */}
-                            <div className="mb-6">
-                                <h3 className="font-medium mb-3 flex items-center">
-                                    <Gamepad2 className="h-4 w-4 mr-2" />
-                                    Rechercher un jeu
-                                </h3>
-                                <SearchHeader
-                                    query={query}
-                                    setQuery={handleQueryChange}
-                                    onSearch={handleSearch}
-                                    suggestions={searchSuggestions}
-                                    selectSuggestion={selectSuggestion}
-                                    isTyping={isTyping}
-                                    isLoading={isLoading}
-                                    showSuggestions={showSuggestions}
-                                    setShowSuggestions={setShowSuggestions}
-                                />
-                            </div>
-
-                            <Separator />
-
-                            {/* Popular games */}
-                            <div>
-                                <h3 className="font-medium mb-3">Jeux populaires</h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {isLoading
-                                        ? Array.from({ length: 6 }).map((_, i) => (
-                                            <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
-                                        ))
-                                        : games.slice(0, 6).map((game) => (
-                                            <Link
-                                                key={game.id}
-                                                href={`/games/${game.id}`}
-                                                className="group aspect-[3/4]"
-                                                onClick={() => setMobileMenuOpen(false)}
-                                            >
-                                                {game.cover ? (
-                                                    <img
-                                                        src={`https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`}
-                                                        alt={game.name}
-                                                        className="w-full h-full object-cover rounded-lg mb-2 group-hover:scale-105 transition-transform duration-300"
-                                                    />
-                                                ) : (
-                                                    <Skeleton className="h-full w-full rounded-lg" />
-                                                )}
-                                            </Link>
-                                        ))}
-                                </div>
-                            </div>
-
-                            <Separator />
-
-                            {/* Scanner options */}
-                            <div>
-                                <h3 className="font-medium mb-3 flex items-center">
-                                    <Settings2 className="h-4 w-4 mr-2" />
-                                    Scanneur
-                                </h3>
-                                <div className="space-y-2">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full justify-start"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        <MonitorSmartphone className="mr-2 h-5 w-5" />
-                                        Détection automatique
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full justify-start"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        <Settings2 className="mr-2 h-5 w-5" />
-                                        Choisir manuellement
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </SheetContent>
-                </Sheet>
             </div>
         </header>
     );

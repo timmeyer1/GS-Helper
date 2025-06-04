@@ -16,18 +16,11 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Trophy,
   Target,
   CircleEqual,
   Edit,
   Trash2,
-  MoreVertical,
   GamepadIcon,
   Calendar,
   ThumbsUp
@@ -104,7 +97,10 @@ const PostSkeleton = () => (
           <Skeleton className="h-4 w-24" />
         </div>
       </div>
-      <Skeleton className="h-8 w-8" />
+      <div className="flex gap-2">
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-8 w-20" />
+      </div>
     </div>
     <Skeleton className="h-4 w-full mb-2" />
     <Skeleton className="h-4 w-3/4 mb-4" />
@@ -285,26 +281,24 @@ export const UserPosts: React.FC = () => {
                 </div>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEdit(post)} className="cursor-pointer">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Modifier
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setDeleteConfirm(post._id)}
-                    className="cursor-pointer text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(post)}
+                  className="flex items-center gap-1"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDeleteConfirm(post._id)}
+                  className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="mb-3 flex items-center justify-between">
