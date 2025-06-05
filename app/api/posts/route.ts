@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Code existant pour récupérer les posts (inchangé)
+    // Récupération des posts existante
     const gameId = searchParams.get("game_id");
     const gpuId = searchParams.get("gpu_id");
     const cpuId = searchParams.get("cpu_id");
@@ -155,12 +155,11 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session || !session.user?.email) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const data = await req.json();
-    const { gameId, content, settings, postType, expectedFps } = data;
+    const { gameId, content, settings, postType, expectedFps } = await req.json();
     
     if (!gameId || !content) {
       return NextResponse.json(
@@ -172,29 +171,20 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     
     const user = await User.findOne({ email: session.user.email });
-    
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    const query = `
-      fields name, cover.url;
-      where id = ${gameId};
-    `;
+    const gameData = await fetchFromIGDB<any[]>("games", `fields name, cover.url; where id = ${gameId};`);
     
-    const gameData = await fetchFromIGDB<any[]>("games", query);
-    
-    if (!gameData || gameData.length === 0) {
+    if (!gameData?.length) {
       return NextResponse.json({ error: "Jeu non trouvé" }, { status: 404 });
     }
     
     const game = gameData[0];
-    const coverUrl = game.cover ? 
-      game.cover.url.replace("t_thumb", "t_cover_big") : 
-      null;
+    const coverUrl = game.cover?.url.replace("t_thumb", "t_cover_big") || null;
 
     const userConfig = await UserConfig.findOne({ user_id: user._id });
-    
     if (!userConfig) {
       return NextResponse.json(
         { error: "Veuillez configurer votre matériel avant de publier" },
@@ -234,13 +224,18 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE - Supprimer un post
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession();
     
-    if (!session || !session.user?.email) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
+
+    const { id } = await params;
 
     await connectToDatabase();
     
@@ -249,12 +244,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    const post = await Post.findOne({ _id: params.id, user_id: user._id });
+    const post = await Post.findOne({ _id: id, user_id: user._id });
     if (!post) {
       return NextResponse.json({ error: "Post non trouvé ou non autorisé" }, { status: 404 });
     }
 
-    await Post.deleteOne({ _id: params.id });
+    await Post.deleteOne({ _id: id });
     return NextResponse.json({ message: "Post supprimé avec succès" });
 
   } catch (error) {

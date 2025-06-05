@@ -2,14 +2,14 @@ import { PostDetail } from '@/components/posts/PostDetail';
 import { Metadata } from 'next';
 
 interface PostDetailPageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 // Fonction pour générer les métadonnées dynamiques
 export async function generateMetadata({ params }: PostDetailPageProps): Promise<Metadata> {
-    const { id } = params;
+    const { id } = await params;
 
     try {
         return {
@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
     }
 }
 
-export default function PostDetailPage({ params }: PostDetailPageProps) {
-    const { id } = params;
+export default async function PostDetailPage({ params }: PostDetailPageProps) {
+    const { id } = await params;
 
     return (
         <div className="container mx-auto px-4 py-8">

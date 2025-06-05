@@ -4,10 +4,10 @@ import connectToDatabase from "@/lib/mongodb";
 import Post from "@/models/post/post";
 import User from "@/models/user/User";
 
-// POST - Ajouter ou retirer un upvote
+// ADD - Ajouter ou retirer un upvote
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -25,8 +25,11 @@ export async function POST(
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
+    // Attendre les params avant de les utiliser
+    const { id } = await params;
+
     // Récupérer le post
-    const post = await Post.findById(params.id);
+    const post = await Post.findById(id);
     
     if (!post) {
       return NextResponse.json({ error: "Post non trouvé" }, { status: 404 });
