@@ -388,14 +388,6 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                                 </div>
                             ))}
                         </div>
-
-                        <div className="text-center pt-4">
-                            <Link href={gameId ? `/games/${gameId}#posts` : '#'}>
-                                <Button variant="link" size="sm" disabled={!gameId}>
-                                    Voir tous les posts ({posts.length})
-                                </Button>
-                            </Link>
-                        </div>
                     </div>
                 )}
             </CardContent>
