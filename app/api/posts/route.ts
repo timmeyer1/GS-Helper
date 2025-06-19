@@ -1,36 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
-import Post from "@/models/post/post";
-import User from "@/models/user/User";
-import UserConfig from "@/models/user/UserConfig";
-import Setting from "@/models/settings/settings";
-import Preset from "@/models/settings/preset";
+import Post from "@/models/post";
+import User from "@/models/User";
+import Setting from "@/models/settings";
 import { fetchFromIGDB } from "@/lib/igdb";
 
-// GET - Récupérer les posts avec les settings/presets
+// GET - Récupérer les posts avec les settings
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const getSettings = searchParams.get("settings");
-    const getPresets = searchParams.get("presets");
-    
-    // Si on demande les settings ou presets
-    if (getSettings || getPresets) {
-      await connectToDatabase();
-      
-      if (getSettings) {
-        const settings = await Setting.find();
-        return NextResponse.json({ settings });
-      }
-      
-      if (getPresets) {
-        const presets = await Preset.find();
-        return NextResponse.json({ presets });
-      }
+
+    // Si on demande les settings
+    if (searchParams.get('settings') === 'true') {
+      const settings = await Setting.find().lean();
+      return NextResponse.json({ settings });
     }
 
-    // Récupération des posts existante
+    // Récupération des posts
     const gameId = searchParams.get("game_id");
     const gpuId = searchParams.get("gpu_id");
     const cpuId = searchParams.get("cpu_id");
@@ -42,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     const session = await getServerSession();
     let currentUser = null;
-    
+
     if (session?.user?.email) {
       await connectToDatabase();
       currentUser = await User.findOne({ email: session.user.email });
@@ -150,17 +138,17 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ADD - Créer un nouveau post
+// POST - Créer un nouveau post
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
     const { gameId, content, settings, postType, expectedFps } = await req.json();
-    
+
     if (!gameId || !content) {
       return NextResponse.json(
         { error: "Le jeu et le contenu sont obligatoires" },
@@ -169,23 +157,23 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
-    
+
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
     const gameData = await fetchFromIGDB<any[]>("games", `fields name, cover.url; where id = ${gameId};`);
-    
+
     if (!gameData?.length) {
       return NextResponse.json({ error: "Jeu non trouvé" }, { status: 404 });
     }
-    
+
     const game = gameData[0];
     const coverUrl = game.cover?.url.replace("t_thumb", "t_cover_big") || null;
 
-    const userConfig = await UserConfig.findOne({ user_id: user._id });
-    if (!userConfig) {
+    // Vérifier que l'utilisateur a une configuration matérielle
+    if (!user.config || !user.config.gpu_id || !user.config.cpu_id || !user.config.ram_id || !user.config.screenresolution_id) {
       return NextResponse.json(
         { error: "Veuillez configurer votre matériel avant de publier" },
         { status: 400 }
@@ -200,10 +188,10 @@ export async function POST(req: NextRequest) {
         cover_url: coverUrl,
       },
       config: {
-        gpu_id: userConfig.gpu_id,
-        cpu_id: userConfig.cpu_id,
-        ram_id: userConfig.ram_id,
-        screenresolution_id: userConfig.screenresolution_id,
+        gpu_id: user.config.gpu_id,
+        cpu_id: user.config.cpu_id,
+        ram_id: user.config.ram_id,
+        screenresolution_id: user.config.screenresolution_id,
       },
       content,
       settings: settings || {},
@@ -225,12 +213,12 @@ export async function POST(req: NextRequest) {
 
 // DELETE - Supprimer un post
 export async function DELETE(
-  req: NextRequest, 
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
@@ -238,7 +226,7 @@ export async function DELETE(
     const { id } = await params;
 
     await connectToDatabase();
-    
+
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });

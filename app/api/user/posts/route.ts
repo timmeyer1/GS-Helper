@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
-import Post from "@/models/post/post";
-import User from "@/models/user/User";
+import Post from "@/models/post";
+import User from "@/models/User";
 
 // GET - Récupérer tous les posts de l'utilisateur connecté
 export async function GET(req: NextRequest) {

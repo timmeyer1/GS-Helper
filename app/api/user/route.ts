@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
-import User from "@/models/user/User";
-import UserConfig from "@/models/user/UserConfig";
+import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
 // Importer tous les modèles nécessaires pour le populate
-// Corriger les chemins d'importation
 import Gpu from "@/models/hardware/gpu";
 import Cpu from "@/models/hardware/cpu";
 import Ram from "@/models/hardware/ram";
@@ -16,40 +14,36 @@ import ScreenResolution from "@/models/hardware/screenresolution";
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession();
-    
+
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
     await connectToDatabase();
-    
-    // S'assurer que les modèles sont bien importés avant d'utiliser UserConfig
-    console.log('Modèles chargés:', 
-      !!Gpu.modelName, 
-      !!Cpu.modelName, 
-      !!Ram.modelName, 
+
+    // S'assurer que les modèles sont bien chargés
+    console.log('Modèles chargés:',
+      !!Gpu.modelName,
+      !!Cpu.modelName,
+      !!Ram.modelName,
       !!ScreenResolution.modelName
     );
-    
+
     const user = await User.findOne({ email: session.user.email })
       .select("-password")
+      .populate('config.gpu_id')
+      .populate('config.cpu_id')
+      .populate('config.ram_id')
+      .populate('config.screenresolution_id')
       .lean();
-      
+
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    // Récupérer la configuration utilisateur avec les références
-    const userConfig = await UserConfig.findOne({ user_id: user._id })
-      .populate('gpu_id')
-      .populate('cpu_id')
-      .populate('ram_id')
-      .populate('screenresolution_id')
-      .lean();
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       user,
-      config: userConfig || null
+      config: user.config || null
     });
   } catch (error) {
     console.error("Erreur lors de la récupération de l'utilisateur:", error);
@@ -64,7 +58,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession();
-    
+
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
@@ -73,9 +67,9 @@ export async function PUT(req: NextRequest) {
     const { name, password, currentPassword } = data;
 
     await connectToDatabase();
-    
+
     const user = await User.findOne({ email: session.user.email });
-    
+
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
@@ -98,7 +92,7 @@ export async function PUT(req: NextRequest) {
 
     // Mise à jour des informations utilisateur
     if (name) user.name = name;
-    
+
     // Mise à jour du mot de passe si fourni
     if (password && password.trim() !== "") {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -107,7 +101,7 @@ export async function PUT(req: NextRequest) {
 
     await user.save();
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Profil mis à jour avec succès",
       user: {
         id: user._id,

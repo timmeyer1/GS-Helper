@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
-import User from "@/models/user/User";
-import UserConfig from "@/models/user/UserConfig";
+import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
 // Importer tous les modèles nécessaires pour le populate
@@ -25,7 +24,7 @@ export async function PUT(req: NextRequest) {
 
     await connectToDatabase();
     
-    // S'assurer que les modèles sont bien importés avant d'utiliser UserConfig
+    // S'assurer que les modèles sont bien chargés
     console.log('Modèles chargés:', 
       !!Gpu.modelName, 
       !!Cpu.modelName, 
@@ -39,7 +38,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    // // Vérifier le mot de passe actuel
+    // Validation du mot de passe (commenté pour le moment)
     // if (!currentPassword || !user.password) {
     //   return NextResponse.json(
     //     { error: "Mot de passe requis pour mettre à jour la configuration" },
@@ -55,41 +54,30 @@ export async function PUT(req: NextRequest) {
     //   );
     // }
 
-    // Chercher une configuration existante ou en créer une nouvelle
-    let userConfig = await UserConfig.findOne({ user_id: user._id });
-    
-    if (!userConfig) {
-      userConfig = new UserConfig({
-        user_id: user._id,
-        gpu_id: gpuId,
-        cpu_id: cpuId,
-        ram_id: ramId,
-        screenresolution_id: screenResolutionId
-      });
-      
-      // Mettre à jour la référence dans le modèle utilisateur
-      user.userconfig_id = userConfig._id;
-      await user.save();
-    } else {
-      // Mettre à jour les champs existants
-      if (gpuId) userConfig.gpu_id = gpuId;
-      if (cpuId) userConfig.cpu_id = cpuId;
-      if (ramId) userConfig.ram_id = ramId;
-      if (screenResolutionId) userConfig.screenresolution_id = screenResolutionId;
+    // Initialiser l'objet config s'il n'existe pas
+    if (!user.config) {
+      user.config = {};
     }
 
-    await userConfig.save();
+    // Mettre à jour les champs de configuration
+    if (gpuId) user.config.gpu_id = gpuId;
+    if (cpuId) user.config.cpu_id = cpuId;
+    if (ramId) user.config.ram_id = ramId;
+    if (screenResolutionId) user.config.screenresolution_id = screenResolutionId;
 
-    // Renvoyer la configuration mise à jour avec les informations peuplées
-    const updatedConfig = await UserConfig.findById(userConfig._id)
-      .populate('gpu_id')
-      .populate('cpu_id')
-      .populate('ram_id')
-      .populate('screenresolution_id');
+    await user.save();
+
+    // Récupérer l'utilisateur mis à jour avec les références peuplées
+    const updatedUser = await User.findById(user._id)
+      .select("-password")
+      .populate('config.gpu_id')
+      .populate('config.cpu_id')
+      .populate('config.ram_id')
+      .populate('config.screenresolution_id');
 
     return NextResponse.json({ 
       message: "Configuration mise à jour avec succès",
-      config: updatedConfig
+      config: updatedUser?.config || null
     });
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la configuration:", error);

@@ -3,65 +3,55 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import HardwareSelectDialog, { HardwareItem } from "./HardwareSelectDialog";
 
-interface UserConfig {
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
   gpu_id?: HardwareItem;
   cpu_id?: HardwareItem;
   ram_id?: HardwareItem;
   screenresolution_id?: HardwareItem;
 }
 
-interface ApiResponse {
-  message: string;
-  config: UserConfig;
-}
-
 interface HardwareConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  config: UserConfig | null;
-  onConfigUpdated: (config: UserConfig) => void;
+  user: User | null;
+  onUserUpdated: (user: User) => void;
 }
 
 const HardwareConfigDialog = ({
   open,
   onOpenChange,
-  config,
-  onConfigUpdated,
+  user,
+  onUserUpdated,
 }: HardwareConfigDialogProps) => {
   const [selectedConfig, setSelectedConfig] = useState<{
     gpu?: HardwareItem;
     cpu?: HardwareItem;
     ram?: HardwareItem;
     screenresolution?: HardwareItem;
-  }>({
-    gpu: config?.gpu_id,
-    cpu: config?.cpu_id,
-    ram: config?.ram_id,
-    screenresolution: config?.screenresolution_id,
-  });
+  }>({});
 
-  const [currentPassword, setCurrentPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hardwareDialogOpen, setHardwareDialogOpen] = useState(false);
   const [currentHardwareType, setCurrentHardwareType] = useState<string>("");
 
-  // Réinitialiser les états lorsque la boîte de dialogue s'ouvre
-  const handleOpenChange = (open: boolean) => {
-    if (open && config) {
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen && user) {
       setSelectedConfig({
-        gpu: config.gpu_id,
-        cpu: config.cpu_id,
-        ram: config.ram_id,
-        screenresolution: config.screenresolution_id,
+        gpu: user.gpu_id,
+        cpu: user.cpu_id,
+        ram: user.ram_id,
+        screenresolution: user.screenresolution_id,
       });
-      setCurrentPassword("");
     }
-    onOpenChange(open);
+    onOpenChange(isOpen);
   };
 
   const handleOpenHardwareDialog = (type: string) => {
@@ -70,69 +60,76 @@ const HardwareConfigDialog = ({
   };
 
   const handleSelectHardware = (item: HardwareItem) => {
-    setSelectedConfig((prev) => ({
-      ...prev,
-      [currentHardwareType]: item,
-    }));
+    setSelectedConfig(prev => ({ ...prev, [currentHardwareType]: item }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // if (!currentPassword) {
-    //   toast.error("Veuillez entrer votre mot de passe pour confirmer les modifications");
-    //   return;
-    // }
-
     setIsLoading(true);
 
     try {
       const response = await fetch("/api/user/config", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gpuId: selectedConfig.gpu?._id,
           cpuId: selectedConfig.cpu?._id,
           ramId: selectedConfig.ram?._id,
           screenResolutionId: selectedConfig.screenresolution?._id,
-          currentPassword,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erreur lors de la mise à jour de la configuration");
+        throw new Error(errorData.error || "Erreur lors de la mise à jour");
       }
 
-      const data = await response.json() as ApiResponse;
-
-      toast.success("Configuration matérielle mise à jour avec succès");
-      onConfigUpdated(data.config);
+      const { user: updatedUser } = await response.json();
+      toast.success("Configuration mise à jour avec succès");
+      onUserUpdated(updatedUser);
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Erreur lors de la mise à jour de la configuration:", error);
-      toast.error(error.message || "Erreur lors de la mise à jour de la configuration");
+      console.error("Erreur:", error);
+      toast.error(error.message || "Erreur lors de la mise à jour");
     } finally {
       setIsLoading(false);
     }
   };
 
   const getDialogTitle = () => {
-    switch (currentHardwareType) {
-      case "gpu":
-        return "Sélectionnez votre carte graphique";
-      case "cpu":
-        return "Sélectionnez votre processeur";
-      case "ram":
-        return "Sélectionnez votre mémoire RAM";
-      case "screenresolution":
-        return "Sélectionnez votre résolution d'écran";
-      default:
-        return "";
-    }
+    const titles = {
+      gpu: "Sélectionnez votre carte graphique",
+      cpu: "Sélectionnez votre processeur", 
+      ram: "Sélectionnez votre mémoire RAM",
+      screenresolution: "Sélectionnez votre résolution d'écran"
+    };
+    return titles[currentHardwareType as keyof typeof titles] || "";
   };
+
+  const hardwareItems = [
+    { 
+      key: "gpu", 
+      label: "Carte graphique", 
+      value: selectedConfig.gpu 
+    },
+    { 
+      key: "cpu", 
+      label: "Processeur", 
+      value: selectedConfig.cpu 
+    },
+    { 
+      key: "ram", 
+      label: "Mémoire RAM", 
+      value: selectedConfig.ram,
+      showType: true
+    },
+    { 
+      key: "screenresolution", 
+      label: "Résolution d'écran", 
+      value: selectedConfig.screenresolution,
+      showDetails: true
+    }
+  ];
 
   return (
     <>
@@ -143,99 +140,32 @@ const HardwareConfigDialog = ({
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Carte graphique</Label>
-                  <p className="text-sm text-gray-500">
-                    {selectedConfig.gpu?.libelle || " "}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenHardwareDialog("gpu")}
-                >
-                  Modifier
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Processeur</Label>
-                  <p className="text-sm text-gray-500">
-                    {selectedConfig.cpu?.libelle || " "}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenHardwareDialog("cpu")}
-                >
-                  Modifier
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Mémoire RAM</Label>
-                  <p className="text-sm text-gray-500">
-                    {selectedConfig.ram?.libelle || " "}
-                    {selectedConfig.ram?.type && (
-                      <span className="text-gray-500 italic font-normal">
-                        {" "}({selectedConfig.ram.type})
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenHardwareDialog("ram")}
-                >
-                  Modifier
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Résolution d'écran</Label>
-                  <p className="text-sm text-gray-500">
-                    {selectedConfig.screenresolution?.libelle || " "}
-                    {(selectedConfig.screenresolution?.width &&
-                      selectedConfig.screenresolution?.height &&
-                      selectedConfig.screenresolution?.aspectRatio) && (
-                        <span className="text-gray-500 italic font-normal">
-                          {" "}({selectedConfig.screenresolution.width}x{selectedConfig.screenresolution.height} - {selectedConfig.screenresolution.aspectRatio})
+              {hardwareItems.map(({ key, label, value, showType, showDetails }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <Label>{label}</Label>
+                    <p className="text-sm text-gray-500">
+                      {value?.libelle || "Non configuré"}
+                      {showType && value?.type && (
+                        <span className="text-gray-500 italic"> ({value.type})</span>
+                      )}
+                      {showDetails && value?.width && value?.height && value?.aspectRatio && (
+                        <span className="text-gray-500 italic">
+                          {" "}({value.width}x{value.height} - {value.aspectRatio})
                         </span>
                       )}
-                  </p>
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenHardwareDialog(key)}
+                  >
+                    Modifier
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenHardwareDialog("screenresolution")}
-                >
-                  Modifier
-                </Button>
-              </div>
-
-              {/* <div className="mt-4">
-                <Label htmlFor="current-password">Mot de passe actuel</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Votre mot de passe est requis pour confirmer ces modifications
-                </p>
-              </div> */}
+              ))}
             </div>
 
             <DialogFooter>
@@ -247,7 +177,6 @@ const HardwareConfigDialog = ({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de sélection du matériel */}
       <HardwareSelectDialog
         open={hardwareDialogOpen}
         onOpenChange={setHardwareDialogOpen}

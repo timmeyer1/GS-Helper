@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectToDatabase from "@/lib/mongodb";
-import Post from "@/models/post/post";
-import User from "@/models/user/User";
+import Post from "@/models/post";
+import User from "@/models/User";
 
 // PUT - Modifier un post spécifique de l'utilisateur
 export async function PUT(

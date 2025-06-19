@@ -13,12 +13,7 @@ interface Setting {
     _id: string;
     name: string;
     display_name: string;
-}
-
-interface Preset {
-    _id: string;
-    name: 'Low' | 'Medium' | 'High' | 'Ultra';
-    display_name: string;
+    values?: string[];
 }
 
 interface CreatePostFormProps {
@@ -29,6 +24,8 @@ interface CreatePostFormProps {
     onPostCreated?: () => void;
 }
 
+const defaultPresets = ['Low', 'Medium', 'High', 'Ultra'];
+
 const CreatePostForm: React.FC<CreatePostFormProps> = ({
     gameId, gameName, userConfig, onPostCreated
 }) => {
@@ -38,28 +35,17 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
     const [expectedFps, setExpectedFps] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [settings, setSettings] = useState<Setting[]>([]);
-    const [presets, setPresets] = useState<Preset[]>([]);
     const [customSettings, setCustomSettings] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
 
-    // Charger les settings et presets
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [settingsRes, presetsRes] = await Promise.all([
-                    fetch('/api/posts?settings=true'),
-                    fetch('/api/posts?presets=true')
-                ]);
-
-                const [settingsData, presetsData] = await Promise.all([
-                    settingsRes.json(),
-                    presetsRes.json()
-                ]);
-
-                setSettings(settingsData.settings || []);
-                setPresets(presetsData.presets || []);
+                const res = await fetch('/api/posts?settings=true');
+                const data = await res.json();
+                setSettings(data.settings || []);
             } catch (error) {
-                console.error('Erreur chargement données:', error);
+                console.error('Erreur chargement settings:', error);
                 toast.error('Erreur lors du chargement des paramètres');
             } finally {
                 setLoading(false);
@@ -70,7 +56,6 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
     }, []);
 
     const handlePresetChange = (presetName: string) => {
-        // Appliquer tous les settings avec la valeur du preset sélectionné
         const newSettings: Record<string, string> = {};
         settings.forEach(setting => {
             newSettings[setting.name] = presetName;
@@ -82,38 +67,18 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
         setCustomSettings(prev => ({ ...prev, [settingName]: value }));
     };
 
-    // Vérifier si tous les settings sont remplis
     const areAllSettingsFilled = () => {
-        return settings.every(setting => customSettings[setting.name] && customSettings[setting.name].trim() !== '');
+        return settings.every(setting => customSettings[setting.name]?.trim());
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!content.trim()) {
-            toast.error('Veuillez ajouter du contenu à votre publication');
-            return;
-        }
-
-        if (!userConfig) {
-            toast.error('Configuration matérielle manquante');
-            return;
-        }
-
-        if (!postType) {
-            toast.error('Veuillez choisir le type de post');
-            return;
-        }
-
-        if (!expectedFps) {
-            toast.error('Veuillez indiquer les FPS attendus');
-            return;
-        }
-
-        if (!areAllSettingsFilled()) {
-            toast.error('Veuillez remplir tous les paramètres graphiques');
-            return;
-        }
+        if (!content.trim()) return toast.error('Veuillez ajouter du contenu à votre publication');
+        if (!userConfig) return toast.error('Configuration matérielle manquante');
+        if (!postType) return toast.error('Veuillez choisir le type de post');
+        if (!expectedFps) return toast.error('Veuillez indiquer les FPS attendus');
+        if (!areAllSettingsFilled()) return toast.error('Veuillez remplir tous les paramètres graphiques');
 
         setIsSubmitting(true);
 
@@ -201,18 +166,16 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
                             <Label>Presets disponibles</Label>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            {presets.map((preset) => (
+                            {defaultPresets.map((presetName) => (
                                 <Button
-                                    key={preset._id}
+                                    key={presetName}
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handlePresetChange(preset.name)}
+                                    onClick={() => handlePresetChange(presetName)}
                                     className="h-12"
                                 >
-                                    <div className="text-center">
-                                        <div className="font-medium">{preset.display_name}</div>
-                                    </div>
+                                    <div className="text-center font-medium">{presetName}</div>
                                 </Button>
                             ))}
                         </div>
@@ -232,10 +195,9 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
                                             <SelectValue placeholder="Sélectionner" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Low">Faible</SelectItem>
-                                            <SelectItem value="Medium">Moyen</SelectItem>
-                                            <SelectItem value="High">Élevé</SelectItem>
-                                            <SelectItem value="Ultra">Ultra</SelectItem>
+                                            {(setting.values || defaultPresets).map((value) => (
+                                                <SelectItem key={value} value={value}>{value}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -288,7 +250,6 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
                             </Select>
                         </div>
                     </div>
-                    
                 </CardContent>
 
                 <CardFooter className="flex justify-end">
@@ -305,5 +266,4 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
         </Card>
     );
 };
-
 export default CreatePostForm;
