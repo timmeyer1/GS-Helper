@@ -12,24 +12,26 @@ interface User {
   name: string;
   email: string;
   isAdmin: boolean;
-  gpu_id?: HardwareItem;
-  cpu_id?: HardwareItem;
-  ram_id?: HardwareItem;
-  screenresolution_id?: HardwareItem;
+  config?: {
+    gpu_id?: HardwareItem;
+    cpu_id?: HardwareItem;
+    ram_id?: HardwareItem;
+    screenresolution_id?: HardwareItem;
+  };
 }
 
 interface HardwareConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: User | null;
-  onUserUpdated: (user: User) => void;
+  config: User['config'] | null;
+  onConfigUpdated: (config: User['config']) => void;
 }
 
 const HardwareConfigDialog = ({
   open,
   onOpenChange,
-  user,
-  onUserUpdated,
+  config,
+  onConfigUpdated,
 }: HardwareConfigDialogProps) => {
   const [selectedConfig, setSelectedConfig] = useState<{
     gpu?: HardwareItem;
@@ -43,12 +45,12 @@ const HardwareConfigDialog = ({
   const [currentHardwareType, setCurrentHardwareType] = useState<string>("");
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && user) {
+    if (isOpen && config) {
       setSelectedConfig({
-        gpu: user.gpu_id,
-        cpu: user.cpu_id,
-        ram: user.ram_id,
-        screenresolution: user.screenresolution_id,
+        gpu: config.gpu_id,
+        cpu: config.cpu_id,
+        ram: config.ram_id,
+        screenresolution: config.screenresolution_id,
       });
     }
     onOpenChange(isOpen);
@@ -84,9 +86,9 @@ const HardwareConfigDialog = ({
         throw new Error(errorData.error || "Erreur lors de la mise à jour");
       }
 
-      const { user: updatedUser } = await response.json();
+      const { config: updatedConfig } = await response.json();
       toast.success("Configuration mise à jour avec succès");
-      onUserUpdated(updatedUser);
+      onConfigUpdated(updatedConfig);
       onOpenChange(false);
     } catch (error: any) {
       console.error("Erreur:", error);
@@ -99,7 +101,7 @@ const HardwareConfigDialog = ({
   const getDialogTitle = () => {
     const titles = {
       gpu: "Sélectionnez votre carte graphique",
-      cpu: "Sélectionnez votre processeur", 
+      cpu: "Sélectionnez votre processeur",
       ram: "Sélectionnez votre mémoire RAM",
       screenresolution: "Sélectionnez votre résolution d'écran"
     };
@@ -107,25 +109,25 @@ const HardwareConfigDialog = ({
   };
 
   const hardwareItems = [
-    { 
-      key: "gpu", 
-      label: "Carte graphique", 
-      value: selectedConfig.gpu 
+    {
+      key: "gpu",
+      label: "Carte graphique",
+      value: selectedConfig.gpu
     },
-    { 
-      key: "cpu", 
-      label: "Processeur", 
-      value: selectedConfig.cpu 
+    {
+      key: "cpu",
+      label: "Processeur",
+      value: selectedConfig.cpu
     },
-    { 
-      key: "ram", 
-      label: "Mémoire RAM", 
+    {
+      key: "ram",
+      label: "Mémoire RAM",
       value: selectedConfig.ram,
       showType: true
     },
-    { 
-      key: "screenresolution", 
-      label: "Résolution d'écran", 
+    {
+      key: "screenresolution",
+      label: "Résolution d'écran",
       value: selectedConfig.screenresolution,
       showDetails: true
     }

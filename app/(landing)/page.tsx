@@ -14,10 +14,12 @@ export default function Home() {
                     GS Helper permet de trouver les meilleurs réglages pour vos jeux en fonction de votre configuration.
                 </h3>
                 <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                    <Button variant="blue" className="w-full sm:w-auto cursor-pointer" size="lg">
-                        Choisir mes périphériques
-                        <MonitorCog className="ml-2 h-5 w-5" />
-                    </Button>
+                    <Link href="/profile">
+                        <Button variant="blue" className="w-full sm:w-auto cursor-pointer" size="lg">
+                            Choisir mes périphériques
+                            <MonitorCog className="ml-2 h-5 w-5" />
+                        </Button>
+                    </Link>
                     <Link href="/search">
                         <Button variant="purple" className="w-full sm:w-auto cursor-pointer" size="lg">
                             Parcourir les jeux

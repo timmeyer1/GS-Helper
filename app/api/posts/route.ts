@@ -6,6 +6,20 @@ import User from "@/models/User";
 import Setting from "@/models/settings";
 import { fetchFromIGDB } from "@/lib/igdb";
 
+// Fonction utilitaire pour vérifier si la configuration est complète
+function isUserConfigComplete(config: any): boolean {
+  if (!config) return false;
+
+  // Vérifier que tous les champs requis existent et ne sont pas null/undefined/vides
+  const requiredFields = ['gpu_id', 'cpu_id', 'ram_id', 'screenresolution_id'];
+
+  return requiredFields.every(field => {
+    const value = config[field];
+    // Vérifier que la valeur existe, n'est pas null, undefined, ou une chaîne vide
+    return value !== null && value !== undefined && value !== '';
+  });
+}
+
 // GET - Récupérer les posts avec les settings
 export async function GET(req: NextRequest) {
   try {
@@ -163,6 +177,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
+    // Vérification stricte de la configuration utilisateur
+    if (!isUserConfigComplete(user.config)) {
+      return NextResponse.json(
+        {
+          error: "Configuration matérielle incomplète. Veuillez renseigner votre GPU, CPU, RAM et résolution d'écran avant de publier."
+        },
+        { status: 400 }
+      );
+    }
+
     const gameData = await fetchFromIGDB<any[]>("games", `fields name, cover.url; where id = ${gameId};`);
 
     if (!gameData?.length) {
@@ -171,14 +195,6 @@ export async function POST(req: NextRequest) {
 
     const game = gameData[0];
     const coverUrl = game.cover?.url.replace("t_thumb", "t_cover_big") || null;
-
-    // Vérifier que l'utilisateur a une configuration matérielle
-    if (!user.config || !user.config.gpu_id || !user.config.cpu_id || !user.config.ram_id || !user.config.screenresolution_id) {
-      return NextResponse.json(
-        { error: "Veuillez configurer votre matériel avant de publier" },
-        { status: 400 }
-      );
-    }
 
     const newPost = new Post({
       user_id: user._id,
