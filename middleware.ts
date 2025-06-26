@@ -6,34 +6,24 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const token = req.nextauth?.token;
 
-    // Si l'utilisateur est déjà connecté
+    // utilisateur connecté
     if (token) {
-      // Si la page est login ou register, on le redirige
-      if (pathname === '/login' || pathname === '/register') {
-        return NextResponse.redirect(new URL('/', req.url)); // Redirige vers la home ou dashboard
-      }
-      
-      // Protection des routes admin - vérification si l'utilisateur est admin
-      if (pathname.startsWith('/admin') && !token.isAdmin) {
+      // pas besoin d'aller sur login/register si déjà connecté
+      if (pathname === '/login' || pathname === '/register') 
+        return NextResponse.redirect(new URL('/', req.url));
+      // vérif si admin pour routes admin
+      if (pathname.startsWith('/admin') && !token.isAdmin) 
         return NextResponse.redirect(new URL('/unauthorized', req.url));
-      }
-    } else {
-      // Si non connecté et tente d'accéder à une route protégée
-      if (pathname.startsWith('/admin')) {
-        return NextResponse.redirect(new URL('/login', req.url));
-      }
+    } else if (pathname.startsWith('/admin')) {
+      // redirige vers login en gardant la page de destination
+      const loginUrl = new URL('/login', req.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
     }
-
-    return NextResponse.next();
   },
-  {
-    callbacks: {
-      // Active la récupération du token pour toutes les routes
-      authorized: () => true,
-    },
-  }
+  { callbacks: { authorized: () => true } } // on laisse passer tout le monde, la logique est dans le middleware
 );
 
 export const config = {
-  matcher: ['/login', '/register', '/admin/:path*'], // Ajout des routes admin à protéger
+  matcher: ['/login', '/register', '/admin/:path*'], // routes à surveiller
 };
