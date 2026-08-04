@@ -1,50 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SearchBar } from '@/components/searchbar';
 import GameCard from '@/components/gamecard';
 import { Skeleton } from '@/components/ui/skeleton';
-
-type Game = {
-    id: number;
-    name: string;
-    cover?: { id: number; image_id: string };
-};
+import { useGameSearch } from '@/lib/hooks/useGameSearch';
+import { Game } from '@/types/game';
 
 interface SearchPageClientProps {
     initialNewGames: Game[];
+    initialQuery?: string;
 }
 
-export default function SearchPageClient({ initialNewGames }: SearchPageClientProps) {
-    const [query, setQuery] = useState('');
+export default function SearchPageClient({ initialNewGames, initialQuery = '' }: SearchPageClientProps) {
     const [results, setResults] = useState<Game[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
-    // États pour la gestion des suggestions de recherche
-    const [searchSuggestions, setSearchSuggestions] = useState<Game[]>([]);
-    const [isTyping, setIsTyping] = useState(false);
-    const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-
-    const router = useRouter();
-
-    // Recherche principale des jeux
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!query.trim()) return;
-
-        // Masquer les suggestions et nettoyer l'état
-        setShowSuggestions(false);
-        setSearchSuggestions([]);
-        setIsTyping(false);
-
-        if (typingTimeout) {
-            clearTimeout(typingTimeout);
-        }
-
+    const searchGames = useCallback(async (term: string) => {
         setIsLoading(true);
         setHasSearched(true);
 
@@ -57,9 +30,9 @@ export default function SearchPageClient({ initialNewGames }: SearchPageClientPr
                 body: JSON.stringify({
                     endpoint: 'games',
                     query: `
-                        fields name, cover.image_id, parent_game, version_parent, category, platforms;
-                        where parent_game = null & version_parent = null & category != 3 & platforms = (6, 167, 48) & name ~ *"${query}"*;
-                        sort rating desc;
+                        fields name, cover.image_id, parent_game, version_parent, category, platforms, total_rating;
+                        where version_parent = null & (category = null | category != 3) & platforms = (6, 167, 48) & name ~ *"${term}"*;
+                        sort total_rating desc;
                         limit 30;
                     `
                 }),
@@ -77,78 +50,27 @@ export default function SearchPageClient({ initialNewGames }: SearchPageClientPr
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
-    // Gestion du changement de la requête de recherche avec debouncing
-    const handleQueryChange = (value: string) => {
-        setQuery(value);
+    const {
+        query,
+        setQuery,
+        suggestions,
+        isTyping,
+        showSuggestions,
+        setShowSuggestions,
+        handleSearch,
+        selectSuggestion,
+    } = useGameSearch({ onSearchSubmit: searchGames, initialQuery });
 
-        // Nettoyer le timeout précédent
-        if (typingTimeout) {
-            clearTimeout(typingTimeout);
+    // Déclenche la recherche automatiquement si la page est arrivée avec ?q= (ex: depuis le header)
+    useEffect(() => {
+        if (initialQuery.trim()) {
+            searchGames(initialQuery);
         }
-
-        // Si le champ est vide, masquer les suggestions
-        if (!value.trim()) {
-            setSearchSuggestions([]);
-            setIsTyping(false);
-            setShowSuggestions(false);
-            return;
-        }
-
-        setIsTyping(true);
-        setShowSuggestions(true);
-
-        // Débouncer les appels API pour éviter trop de requêtes
-        const timeout = setTimeout(() => {
-            fetchSuggestions(value);
-        }, 300);
-
-        setTypingTimeout(timeout);
-    };
-
-    // Récupération des suggestions de recherche
-    const fetchSuggestions = async (searchTerm: string) => {
-        if (searchTerm.length < 2) return;
-
-        try {
-            const response = await fetch('/api/igdb', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    endpoint: 'games',
-                    query: `
-                        fields name, cover.image_id, parent_game, version_parent, category, platforms;
-                        where parent_game = null & version_parent = null & category != 3 & platforms = (6, 167, 48) & name ~ *"${searchTerm}"*;
-                        sort rating desc;
-                        limit 5;
-                    `
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Erreur lors de la récupération des suggestions');
-            }
-
-            const data = await response.json();
-            setSearchSuggestions(data);
-        } catch (error) {
-            console.error('Erreur lors de la recherche de suggestions:', error);
-            setSearchSuggestions([]);
-        } finally {
-            setIsTyping(false);
-        }
-    };
-
-    // Sélection d'une suggestion
-    const selectSuggestion = (game: Game) => {
-        setQuery(game.name);
-        setSearchSuggestions([]);
-        setShowSuggestions(false);
-        router.push(`/games/${game.id}`);
-    };
+        // Volontairement exécuté une seule fois au montage : seul le ?q= initial doit déclencher cet effet.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Composant pour afficher les squelettes de chargement
     const GameSkeleton = () => (
@@ -169,10 +91,11 @@ export default function SearchPageClient({ initialNewGames }: SearchPageClientPr
                 </h1>
 
                 <SearchBar
+                    variant="full"
                     query={query}
-                    setQuery={handleQueryChange}
+                    setQuery={setQuery}
                     onSearch={handleSearch}
-                    suggestions={searchSuggestions}
+                    suggestions={suggestions}
                     selectSuggestion={selectSuggestion}
                     isTyping={isTyping}
                     isLoading={isLoading}

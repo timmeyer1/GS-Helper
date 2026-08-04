@@ -194,7 +194,10 @@ export async function POST(req: NextRequest) {
     }
 
     const game = gameData[0];
-    const coverUrl = game.cover?.url.replace("t_thumb", "t_cover_big") || null;
+    const rawCoverUrl = game.cover?.url ?? null;
+    const coverUrl = rawCoverUrl
+      ? `https:${rawCoverUrl.replace("t_thumb", "t_cover_big")}`
+      : null;
 
     const newPost = new Post({
       user_id: user._id,

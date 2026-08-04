@@ -33,7 +33,7 @@ interface UserPost {
   game_id: number;
   game_metadata: {
     name: string;
-    cover_url?: string;
+    cover_url?: string | null;
   };
   content: string;
   settings: Record<string, string>;
@@ -70,6 +70,11 @@ const SETTING_VALUES = [
   { value: 'High', label: 'Élevé' },
   { value: 'Ultra', label: 'Ultra' }
 ];
+
+const normalizeCoverUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  return url.startsWith('//') ? `https:${url}` : url;
+};
 
 const translateValue = (value: string) => {
   const translation = SETTING_VALUES.find(s => s.value === value)?.label ||
@@ -257,11 +262,12 @@ export const UserPosts: React.FC = () => {
           <div key={post._id} className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                {post.game_metadata.cover_url && (
+                {normalizeCoverUrl(post.game_metadata.cover_url) && (
                   <img
-                    src={post.game_metadata.cover_url}
+                    src={normalizeCoverUrl(post.game_metadata.cover_url)!}
                     alt={`Couverture de ${post.game_metadata.name}`}
-                    className="w-12 h-16 object-cover rounded-md"
+                    className="w-12 h-16 object-cover rounded-md flex-shrink-0"
+                    loading="lazy"
                   />
                 )}
                 <div>
