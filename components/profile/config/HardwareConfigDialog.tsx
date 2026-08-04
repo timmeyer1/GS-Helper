@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -44,8 +44,8 @@ const HardwareConfigDialog = ({
   const [hardwareDialogOpen, setHardwareDialogOpen] = useState(false);
   const [currentHardwareType, setCurrentHardwareType] = useState<string>("");
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && config) {
+  useEffect(() => {
+    if (open && config) {
       setSelectedConfig({
         gpu: config.gpu_id,
         cpu: config.cpu_id,
@@ -53,8 +53,7 @@ const HardwareConfigDialog = ({
         screenresolution: config.screenresolution_id,
       });
     }
-    onOpenChange(isOpen);
-  };
+  }, [open, config]);
 
   const handleOpenHardwareDialog = (type: string) => {
     setCurrentHardwareType(type);
@@ -135,7 +134,7 @@ const HardwareConfigDialog = ({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Modifier ma configuration matérielle</DialogTitle>

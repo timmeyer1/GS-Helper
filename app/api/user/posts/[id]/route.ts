@@ -8,14 +8,16 @@ import User from "@/models/User";
 // PUT - Modifier un post spécifique de l'utilisateur
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
-    
+
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const { content, postType, expectedFps, settings } = await req.json();
 
@@ -27,14 +29,14 @@ export async function PUT(
     }
 
     await connectToDatabase();
-    
+
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
     // Vérifier que le post appartient bien à l'utilisateur
-    const post = await Post.findOne({ _id: params.id, user_id: user._id });
+    const post = await Post.findOne({ _id: id, user_id: user._id });
     if (!post) {
       return NextResponse.json(
         { error: "Post non trouvé ou non autorisé" },
@@ -43,7 +45,7 @@ export async function PUT(
     }
 
     // Mettre à jour le post
-    await Post.findByIdAndUpdate(params.id, {
+    await Post.findByIdAndUpdate(id, {
       content: content.trim(),
       postType: postType || 'equilibre',
       expectedFps: expectedFps || '60-80',
@@ -64,26 +66,28 @@ export async function PUT(
 // DELETE - Supprimer un post spécifique de l'utilisateur
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
-    
+
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     await connectToDatabase();
-    
+
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
     // Vérifier que le post appartient bien à l'utilisateur et le supprimer
-    const deletedPost = await Post.findOneAndDelete({ 
-      _id: params.id, 
-      user_id: user._id 
+    const deletedPost = await Post.findOneAndDelete({
+      _id: id,
+      user_id: user._id
     });
 
     if (!deletedPost) {
