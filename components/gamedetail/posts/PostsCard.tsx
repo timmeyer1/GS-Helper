@@ -320,24 +320,24 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredPosts.map((post) => (
                                 <div key={post._id} className="relative group">
-                                    {/* Bouton de vote positionné en absolu */}
-                                    <div className="absolute top-4 right-4 z-10">
-                                        <UpvoteButton
-                                            postId={post._id}
-                                            initialUpvotes={post.votes.upvotes}
-                                            hasUserVoted={post.hasUserVoted}
-                                            onVoteChange={(upvotes, hasUserVoted) =>
-                                                handleVoteChange(post._id, upvotes, hasUserVoted)
-                                            }
-                                        />
-                                    </div>
 
                                     {/* Card cliquable sans le bouton de vote */}
-                                    <Link
-                                        href={`/posts/${post._id}`}
-                                        className="no-underline text-inherit block"
-                                    >
-                                        <Card className="h-[320px] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+                                    <Card className="h-[320px] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+                                        {/* Bouton de vote positionné en absolu */}
+                                        <div className="absolute top-4 right-4 z-10">
+                                            <UpvoteButton
+                                                postId={post._id}
+                                                initialUpvotes={post.votes.upvotes}
+                                                hasUserVoted={post.hasUserVoted}
+                                                onVoteChange={(upvotes, hasUserVoted) =>
+                                                    handleVoteChange(post._id, upvotes, hasUserVoted)
+                                                }
+                                            />
+                                        </div>
+                                        <Link
+                                            href={`/posts/${post._id}`}
+                                            className="no-underline text-inherit block"
+                                        >
                                             <CardContent className="p-4 h-full flex flex-col">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="flex items-center gap-2 min-w-0 flex-1 pr-12">
@@ -404,8 +404,8 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                                                     )}
                                                 </div>
                                             </CardContent>
-                                        </Card>
-                                    </Link>
+                                        </Link>
+                                    </Card>
                                 </div>
                             ))}
                         </div>
@@ -424,6 +424,6 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                     </div>
                 )}
             </CardContent>
-        </Card>
+        </Card >
     );
 };
