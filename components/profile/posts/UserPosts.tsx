@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
@@ -23,7 +23,9 @@ import {
   Trash2,
   GamepadIcon,
   Calendar,
-  ThumbsUp
+  ThumbsUp,
+  Search,
+  ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -70,6 +72,16 @@ const SETTING_VALUES = [
   { value: 'High', label: 'Élevé' },
   { value: 'Ultra', label: 'Ultra' }
 ];
+
+type SortOption = 'popularity' | 'recent' | 'oldest';
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'recent', label: 'Plus récent' },
+  { value: 'oldest', label: 'Plus ancien' },
+  { value: 'popularity', label: 'Popularité (votes)' }
+];
+
+const ALL_GAMES_VALUE = '__all__';
 
 const normalizeCoverUrl = (url: string | null): string | null => {
   if (!url) return null;
@@ -125,6 +137,11 @@ export const UserPosts: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // États pour le tri et le filtrage
+  const [selectedGame, setSelectedGame] = useState<string>(ALL_GAMES_VALUE);
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [searchQuery, setSearchQuery] = useState('');
+
   // États pour le formulaire d'édition
   const [editData, setEditData] = useState({
     content: '',
@@ -168,6 +185,50 @@ export const UserPosts: React.FC = () => {
     };
     loadData();
   }, [fetchUserPosts, fetchSettings]);
+
+  // Liste des jeux sur lesquels l'utilisateur a posté (pour le filtre)
+  const availableGames = useMemo(() => {
+    const gamesMap = new Map<number, string>();
+    posts.forEach((post) => {
+      if (!gamesMap.has(post.game_id)) {
+        gamesMap.set(post.game_id, post.game_metadata.name);
+      }
+    });
+    return Array.from(gamesMap.entries())
+      .map(([game_id, name]) => ({ game_id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [posts]);
+
+  // Posts filtrés, recherchés puis triés pour l'affichage
+  const displayedPosts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    let result = posts;
+
+    if (selectedGame !== ALL_GAMES_VALUE) {
+      const gameId = Number(selectedGame);
+      result = result.filter((post) => post.game_id === gameId);
+    }
+
+    if (query) {
+      result = result.filter((post) =>
+        post.content.toLowerCase().includes(query) ||
+        post.game_metadata.name.toLowerCase().includes(query)
+      );
+    }
+
+    return [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'popularity':
+          return b.votes.upvotes - a.votes.upvotes;
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'recent':
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+  }, [posts, selectedGame, searchQuery, sortBy]);
 
   const handleEdit = (post: UserPost) => {
     setEditingPost(post);
@@ -230,6 +291,10 @@ export const UserPosts: React.FC = () => {
     }
   };
 
+  const handleOpenPost = (postId: string) => {
+    router.push(`/posts/${postId}`);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -257,87 +322,157 @@ export const UserPosts: React.FC = () => {
 
   return (
     <>
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <div key={post._id} className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                {normalizeCoverUrl(post.game_metadata.cover_url) && (
-                  <img
-                    src={normalizeCoverUrl(post.game_metadata.cover_url)!}
-                    alt={`Couverture de ${post.game_metadata.name}`}
-                    className="w-12 h-16 object-cover rounded-md flex-shrink-0"
-                    loading="lazy"
-                  />
-                )}
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {post.game_metadata.name}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(post.created_at).toLocaleDateString('fr-FR')}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="w-4 h-4" />
-                      {post.votes.upvotes} vote{post.votes.upvotes !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-              </div>
+      {/* Barre de filtres */}
+      <div className="bg-white p-4 rounded-lg shadow-md mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs text-gray-500 mb-1 block">Jeu</Label>
+          <Select value={selectedGame} onValueChange={setSelectedGame}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_GAMES_VALUE}>Tous les jeux</SelectItem>
+              {availableGames.map(({ game_id, name }) => (
+                <SelectItem key={game_id} value={String(game_id)}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(post)}
-                  className="flex items-center gap-1"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDeleteConfirm(post._id)}
-                  className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs text-gray-500 mb-1 block">Trier par</Label>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="mb-3 flex items-center justify-between">
-              <PostTypeBadge type={post.postType} />
-              <span className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                {translateValue(post.expectedFps)}
-              </span>
-            </div>
+        <div className="flex-[2] min-w-0">
+          <Label className="text-xs text-gray-500 mb-1 block">Rechercher</Label>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher dans vos posts..."
+              className="pl-8"
+            />
+          </div>
+        </div>
+      </div>
 
-            <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-              {post.content}
-            </p>
-
-            {post.settings && Object.keys(post.settings).length > 0 && (
-              <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
-                <h4 className="text-sm font-medium mb-2">Paramètres graphiques:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                  {Object.entries(post.settings).map(([key, value]) => (
-                    <div key={key} className="flex flex-col">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {key.replace('_', ' ')}
+      {displayedPosts.length === 0 ? (
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-center py-8">
+          <p className="text-gray-500">Aucun post ne correspond à ces critères</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {displayedPosts.map((post) => (
+            <div
+              key={post._id}
+              role="link"
+              tabIndex={0}
+              onClick={() => handleOpenPost(post._id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOpenPost(post._id);
+                }
+              }}
+              className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  {normalizeCoverUrl(post.game_metadata.cover_url) && (
+                    <img
+                      src={normalizeCoverUrl(post.game_metadata.cover_url)!}
+                      alt={`Couverture de ${post.game_metadata.name}`}
+                      className="w-12 h-16 object-cover rounded-md flex-shrink-0"
+                      loading="lazy"
+                    />
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-lg flex items-center gap-1.5">
+                      {post.game_metadata.name}
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                    </h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(post.created_at).toLocaleDateString('fr-FR')}
                       </span>
-                      <span className="font-medium">
-                        {translateValue(String(value))}
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="w-4 h-4" />
+                        {post.votes.upvotes} vote{post.votes.upvotes !== 1 ? 's' : ''}
                       </span>
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(post);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirm(post._id);
+                    }}
+                    className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+
+              <div className="mb-3 flex items-center justify-between">
+                <PostTypeBadge type={post.postType} />
+                <span className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                  {translateValue(post.expectedFps)}
+                </span>
+              </div>
+
+              <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                {post.content}
+              </p>
+
+              {post.settings && Object.keys(post.settings).length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
+                  <h4 className="text-sm font-medium mb-2">Paramètres graphiques:</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    {Object.entries(post.settings).map(([key, value]) => (
+                      <div key={key} className="flex flex-col">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {key.replace('_', ' ')}
+                        </span>
+                        <span className="font-medium">
+                          {translateValue(String(value))}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Dialog de modification */}
       <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>

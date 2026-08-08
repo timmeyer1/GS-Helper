@@ -40,14 +40,14 @@ const SkeletonSection = ({ lines = 3 }: { lines?: number }) => (
   </div>
 );
 
-const SectionSkeleton = ({ title, lines = 3 }: { title: string; lines?: number }) => (
-  <section className="pb-4 border-b border-gray-200 last:border-b-0 last:pb-0">
+const SectionSkeletonCard = ({ lines = 3 }: { lines?: number }) => (
+  <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-9 w-full sm:w-64" />
     </div>
     <SkeletonSection lines={lines} />
-  </section>
+  </div>
 );
 
 const PageSkeleton = () => (
@@ -57,11 +57,11 @@ const PageSkeleton = () => (
         <Skeleton className="h-10 w-48 md:h-12 md:w-64" />
       </div>
       <Skeleton className="h-6 w-full max-w-lg" />
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
-        <SectionSkeleton title="Informations personnelles" />
-        <SectionSkeleton title="Ma Configuration PC" lines={4} />
-        <SectionSkeleton title="Mes posts" lines={2} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SectionSkeletonCard />
+        <SectionSkeletonCard lines={4} />
       </div>
+      <SectionSkeletonCard lines={2} />
     </div>
   </div>
 );
@@ -89,7 +89,7 @@ const Profile = () => {
       try {
         const response = await fetch("/api/user");
         if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
-        
+
         const { user } = await response.json();
         setUser(user);
       } catch (error) {
@@ -131,9 +131,9 @@ const Profile = () => {
           Personnalisez votre profil et configurez votre matériel pour optimiser vos performances en jeu.
         </p>
 
-        <main className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Informations personnelles */}
-          <section className="pb-4 border-b border-gray-200">
+          <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Informations personnelles</h2>
               <Button
@@ -172,7 +172,7 @@ const Profile = () => {
           </section>
 
           {/* Configuration PC */}
-          <section className="pb-4 border-b border-gray-200">
+          <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Ma Configuration PC</h2>
               <Button
@@ -207,15 +207,15 @@ const Profile = () => {
               </div>
             )}
           </section>
+        </div>
 
-          {/* Mes posts */}
-          <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Mes publications</h2>
-            </div>
-            <UserPosts />
-          </section>
-        </main>
+        {/* Mes posts */}
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Mes publications</h2>
+          </div>
+          <UserPosts />
+        </section>
 
         {/* Dialogues modaux */}
         <UserProfileEditDialog
