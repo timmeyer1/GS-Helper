@@ -57,6 +57,9 @@ interface Post {
 
 type FilterType = 'tous' | 'equilibre' | 'performance' | 'qualite';
 
+// Nombre de posts chargés initialement, puis ajoutés à chaque clic sur "Afficher plus"
+const POSTS_PER_PAGE = 9;
+
 const FILTERS = {
     tous: { icon: Filter, label: 'Tous', color: '' },
     equilibre: { icon: CircleEqual, label: 'Équilibré', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
@@ -146,27 +149,45 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
     const router = useRouter();
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [filter, setFilter] = useState<FilterType>('tous');
 
-    const fetchPosts = useCallback(async () => {
+    const fetchPosts = useCallback(async (pageNumber: number, isLoadMore: boolean) => {
         if (!gameId) return;
-        setLoading(true);
+        isLoadMore ? setLoadingMore(true) : setLoading(true);
         try {
-            const response = await fetch(`/api/posts?game_id=${gameId}&limit=6&sort=votes`);
+            const response = await fetch(
+                `/api/posts?game_id=${gameId}&limit=${POSTS_PER_PAGE}&page=${pageNumber}&sort=votes`
+            );
             if (response.ok) {
                 const data = await response.json();
-                setPosts(data.posts || []);
+                const fetchedPosts: Post[] = data.posts || [];
+                // En "charger plus" on ajoute les nouveaux posts, sinon on remplace la liste
+                setPosts(prev => (isLoadMore ? [...prev, ...fetchedPosts] : fetchedPosts));
+                const totalPages = data.pagination?.pages ?? pageNumber;
+                setHasMore(pageNumber < totalPages);
             }
         } catch (error) {
             console.error('Erreur posts:', error);
         } finally {
-            setLoading(false);
+            isLoadMore ? setLoadingMore(false) : setLoading(false);
         }
     }, [gameId]);
 
+    // Réinitialise la pagination quand on change de jeu
     useEffect(() => {
-        fetchPosts();
-    }, [fetchPosts]);
+        setPage(1);
+    }, [gameId]);
+
+    useEffect(() => {
+        fetchPosts(page, page > 1);
+    }, [fetchPosts, page]);
+
+    const handleShowMore = useCallback(() => {
+        setPage(prev => prev + 1);
+    }, []);
 
     const handleVoteChange = useCallback((postId: string, newUpvotes: number, hasUserVoted: boolean) => {
         setPosts(prev => prev.map(post =>
@@ -200,7 +221,7 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[...Array(6)].map((_, i) => <PostSkeleton key={i} />)}
+                        {[...Array(POSTS_PER_PAGE)].map((_, i) => <PostSkeleton key={i} />)}
                     </div>
                 </CardContent>
             </Card>
@@ -388,6 +409,18 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                                 </div>
                             ))}
                         </div>
+
+                        {hasMore && (
+                            <div className="flex justify-center pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleShowMore}
+                                    disabled={loadingMore}
+                                >
+                                    {loadingMore ? 'Chargement...' : 'Afficher plus'}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </CardContent>
