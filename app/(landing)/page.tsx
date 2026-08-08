@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function Home() {
     return (
-        <div className="min-h-screen flex flex-col lg:flex-row lg:justify-around p-4 sm:p-6 md:p-10 lg:p-16">
+        <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row lg:justify-around p-4 sm:p-6 md:p-10 lg:p-16">
             <div className="space-y-4 lg:space-y-6 w-full lg:w-2/5 max-w-xl">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                     Les meilleurs réglages pour vos jeux

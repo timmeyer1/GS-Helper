@@ -229,17 +229,6 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
     }
 
     const renderEmptyState = () => {
-        if (!userConfig) {
-            return (
-                <EmptyState>
-                    <p className="text-gray-500">Ajoutez votre configuration matérielle pour voir des recommandations</p>
-                    <Button variant="outline" onClick={() => router.push('/profile')}>
-                        Compléter mon profil
-                    </Button>
-                </EmptyState>
-            );
-        }
-
         if (filteredPosts.length === 0 && posts.length > 0) {
             return (
                 <EmptyState>
@@ -268,14 +257,10 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <CardTitle>Posts populaires</CardTitle>
-                        <CardDescription>
-                            {userConfig
-                                ? 'Les configurations les mieux notées'
-                                : 'Complétez votre profil pour voir des recommandations'}
-                        </CardDescription>
+                        <CardDescription>Les configurations les mieux notées</CardDescription>
                     </div>
 
-                    {userConfig && posts.length > 0 && (
+                    {posts.length > 0 && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" className="flex items-center gap-2 h-9 px-3">
@@ -302,6 +287,22 @@ export const PostsCard: React.FC<{ gameId?: number; userConfig?: UserConfig }> =
             <CardContent>
                 {renderEmptyState() || (
                     <div className="space-y-4">
+                        {!userConfig && (
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md px-4 py-3">
+                                <p className="text-sm text-blue-800 dark:text-blue-200">
+                                    Complétez votre configuration matérielle pour des recommandations personnalisées.
+                                </p>
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0 text-blue-800 dark:text-blue-200 underline whitespace-nowrap"
+                                    onClick={() => router.push('/profile')}
+                                >
+                                    Compléter mon profil
+                                </Button>
+                            </div>
+                        )}
+
                         {filter !== 'tous' && (
                             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                 <span>Filtré par :</span>

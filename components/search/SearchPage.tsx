@@ -84,11 +84,13 @@ export default function SearchPageClient({ initialNewGames, initialQuery = '' }:
     );
 
     return (
-        <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
-            <div className="container mx-auto">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8">
-                    Rechercher un jeu
-                </h1>
+        <div className="min-h-screen bg-gray-50 p-3 sm:p-5 md:p-8 lg:p-12">
+            <div className="container mx-auto space-y-10">
+                <header>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
+                        Rechercher un jeu
+                    </h1>
+                </header>
 
                 <SearchBar
                     variant="full"
@@ -105,8 +107,8 @@ export default function SearchPageClient({ initialNewGames, initialQuery = '' }:
 
                 {/* Résultats de recherche */}
                 {results.length > 0 && (
-                    <div className="mb-16">
-                        <h2 className="text-xl sm:text-2xl font-semibold mb-4">
+                    <section>
+                        <h2 className="text-lg sm:text-xl font-semibold pb-3 mb-5 border-b border-gray-200">
                             Résultats ({results.length})
                         </h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -114,12 +116,12 @@ export default function SearchPageClient({ initialNewGames, initialQuery = '' }:
                                 <GameCard key={game.id} game={game} />
                             ))}
                         </div>
-                    </div>
+                    </section>
                 )}
 
                 {/* Message quand aucun résultat n'est trouvé */}
                 {hasSearched && results.length === 0 && !isLoading && (
-                    <div className="text-center py-8 mb-16">
+                    <div className="text-center py-8">
                         <p className="text-gray-500">
                             Aucun résultat trouvé pour "{query}"
                         </p>
@@ -127,8 +129,8 @@ export default function SearchPageClient({ initialNewGames, initialQuery = '' }:
                 )}
 
                 {/* Section des nouveautés */}
-                <div className="mt-16">
-                    <h2 className="text-xl sm:text-2xl font-semibold mb-4">
+                <section>
+                    <h2 className="text-lg sm:text-xl font-semibold pb-3 mb-5 border-b border-gray-200">
                         Nouveautés
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -143,7 +145,7 @@ export default function SearchPageClient({ initialNewGames, initialQuery = '' }:
                             ))
                         )}
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     );
