@@ -105,25 +105,15 @@ const PostTypeBadge: React.FC<{ type: keyof typeof POST_TYPES }> = ({ type }) =>
 };
 
 const PostSkeleton = () => (
-  <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md space-y-4">
-    <div className="flex items-start justify-between">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-12 w-12 rounded-md" />
-        <div>
-          <Skeleton className="h-5 w-32 mb-2" />
-          <Skeleton className="h-4 w-24" />
-        </div>
+  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3">
+    <div className="flex items-start gap-3">
+      <Skeleton className="h-12 w-9 rounded-md shrink-0" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-3/4" />
       </div>
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-20" />
-        <Skeleton className="h-8 w-20" />
-      </div>
-    </div>
-    <Skeleton className="h-4 w-full mb-2" />
-    <Skeleton className="h-4 w-3/4 mb-4" />
-    <div className="flex justify-between items-center">
-      <Skeleton className="h-6 w-20" />
-      <Skeleton className="h-4 w-16" />
     </div>
   </div>
 );
@@ -305,7 +295,7 @@ export const UserPosts: React.FC = () => {
 
   if (posts.length === 0) {
     return (
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-center py-8">
+      <div className="bg-gray-50 p-4 sm:p-6 rounded-lg text-center py-8">
         <GamepadIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
         <p className="text-gray-500 mb-4">
           Vous n'avez encore publié aucun post
@@ -323,7 +313,7 @@ export const UserPosts: React.FC = () => {
   return (
     <>
       {/* Barre de filtres */}
-      <div className="bg-white p-4 rounded-lg shadow-md mb-4 flex flex-col sm:flex-row gap-3">
+      <div className="bg-gray-50 p-4 rounded-lg mb-4 flex flex-col sm:flex-row gap-3">
         <div className="flex-1 min-w-0">
           <Label className="text-xs text-gray-500 mb-1 block">Jeu</Label>
           <Select value={selectedGame} onValueChange={setSelectedGame}>
@@ -368,11 +358,11 @@ export const UserPosts: React.FC = () => {
       </div>
 
       {displayedPosts.length === 0 ? (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-center py-8">
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg text-center py-8">
           <p className="text-gray-500">Aucun post ne correspond à ces critères</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {displayedPosts.map((post) => (
             <div
               key={post._id}
@@ -385,90 +375,71 @@ export const UserPosts: React.FC = () => {
                   handleOpenPost(post._id);
                 }
               }}
-              className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {normalizeCoverUrl(post.game_metadata.cover_url) && (
-                    <img
-                      src={normalizeCoverUrl(post.game_metadata.cover_url)!}
-                      alt={`Couverture de ${post.game_metadata.name}`}
-                      className="w-12 h-16 object-cover rounded-md flex-shrink-0"
-                      loading="lazy"
-                    />
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-1.5">
+              <div className="flex items-start gap-3">
+                {normalizeCoverUrl(post.game_metadata.cover_url) && (
+                  <img
+                    src={normalizeCoverUrl(post.game_metadata.cover_url)!}
+                    alt={`Couverture de ${post.game_metadata.name}`}
+                    className="w-9 h-12 object-cover rounded-md flex-shrink-0"
+                    loading="lazy"
+                  />
+                )}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-sm sm:text-base flex items-center gap-1.5 truncate">
                       {post.game_metadata.name}
-                      <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     </h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(post.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ThumbsUp className="w-4 h-4" />
-                        {post.votes.upvotes} vote{post.votes.upvotes !== 1 ? 's' : ''}
-                      </span>
+
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(post);
+                        }}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirm(post._id);
+                        }}
+                        className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(post);
-                    }}
-                    className="flex items-center gap-1"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirm(post._id);
-                    }}
-                    className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mb-3 flex items-center justify-between">
-                <PostTypeBadge type={post.postType} />
-                <span className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                  {translateValue(post.expectedFps)}
-                </span>
-              </div>
-
-              <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                {post.content}
-              </p>
-
-              {post.settings && Object.keys(post.settings).length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
-                  <h4 className="text-sm font-medium mb-2">Paramètres graphiques:</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                    {Object.entries(post.settings).map(([key, value]) => (
-                      <div key={key} className="flex flex-col">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          {key.replace('_', ' ')}
-                        </span>
-                        <span className="font-medium">
-                          {translateValue(String(value))}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                      {post.votes.upvotes}
+                    </span>
+                    <PostTypeBadge type={post.postType} />
+                    <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {translateValue(post.expectedFps)}
+                    </span>
                   </div>
+
+                  <p className="text-sm text-gray-600 mt-2 line-clamp-2 leading-relaxed">
+                    {post.content}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>

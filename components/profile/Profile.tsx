@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Settings, UserRoundCog } from "lucide-react";
+import { Settings, UserRoundCog, Cpu, Zap, MemoryStick, Monitor } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import UserProfileEditDialog from "@/components/profile/userinfo/UserProfileEditDialog";
@@ -41,21 +41,21 @@ const SkeletonSection = ({ lines = 3 }: { lines?: number }) => (
 );
 
 const SectionSkeletonCard = ({ lines = 3 }: { lines?: number }) => (
-  <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-9 w-full sm:w-64" />
+  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 bg-gray-50/60">
+      <Skeleton className="h-7 w-48" />
+      <Skeleton className="h-9 w-full sm:w-32" />
     </div>
-    <SkeletonSection lines={lines} />
+    <div className="p-5">
+      <SkeletonSection lines={lines} />
+    </div>
   </div>
 );
 
 const PageSkeleton = () => (
-  <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
-    <div className="container mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <Skeleton className="h-10 w-48 md:h-12 md:w-64" />
-      </div>
+  <div className="min-h-screen bg-gray-50 p-3 sm:p-5 md:p-8 lg:p-12">
+    <div className="container mx-auto space-y-8">
+      <Skeleton className="h-10 w-48 md:h-12 md:w-64" />
       <Skeleton className="h-6 w-full max-w-lg" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SectionSkeletonCard />
@@ -67,10 +67,10 @@ const PageSkeleton = () => (
 );
 
 const HARDWARE_CONFIGS = [
-  { key: 'gpu_id' as const, label: 'Carte graphique' },
-  { key: 'cpu_id' as const, label: 'Processeur' },
-  { key: 'ram_id' as const, label: 'Mémoire RAM', hasType: true },
-  { key: 'screenresolution_id' as const, label: 'Résolution d\'écran', hasDetails: true }
+  { key: 'gpu_id' as const, label: 'Carte graphique', icon: Zap },
+  { key: 'cpu_id' as const, label: 'Processeur', icon: Cpu },
+  { key: 'ram_id' as const, label: 'Mémoire RAM', icon: MemoryStick, hasType: true },
+  { key: 'screenresolution_id' as const, label: 'Résolution d\'écran', icon: Monitor, hasDetails: true }
 ];
 
 const Profile = () => {
@@ -121,100 +121,111 @@ const Profile = () => {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen p-3 sm:p-5 md:p-8 lg:p-12">
-      <div className="container mx-auto">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-5 md:p-8 lg:p-12">
+      <div className="container mx-auto space-y-8">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">Mon Profil</h1>
         </header>
 
-        <p className="text-sm sm:text-base md:text-lg text-gray-700 mb-6">
+        <p className="text-sm sm:text-base md:text-lg text-gray-700 -mt-4">
           Personnalisez votre profil et configurez votre matériel pour optimiser vos performances en jeu.
         </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Informations personnelles */}
-          <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Informations personnelles</h2>
+          <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 bg-gray-50/60">
+              <h2 className="text-lg sm:text-xl font-semibold">Informations personnelles</h2>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => toggleDialog('userProfile')}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-white"
                 disabled={loading}
               >
                 <UserRoundCog className="h-4 w-4 mr-1" />
-                Modifier les informations
+                Modifier
               </Button>
             </div>
 
-            {loading ? <SkeletonSection /> : user ? (
-              <div className="space-y-2 text-sm sm:text-base">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="font-semibold">Nom:</span>
-                  <span className="sm:ml-2">{user.name}</span>
+            <div className="p-5">
+              {loading ? <SkeletonSection /> : user ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Nom</p>
+                      <p className="text-base font-semibold text-gray-900 truncate">{user.name}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Email</p>
+                      <p className="text-base font-semibold text-gray-900 break-all">{user.email}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Statut</p>
+                      <p className="text-base font-semibold text-gray-900">{user.isAdmin ? "Administrateur" : "Utilisateur"}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Les informations peuvent prendre effet après une reconnexion.
+                  </p>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="font-semibold">Email:</span>
-                  <span className="sm:ml-2 break-all">{user.email}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="font-semibold">Statut:</span>
-                  <span className="sm:ml-2">{user.isAdmin ? "Administrateur" : "Utilisateur"}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Les informations peuvent prendre effet après une reconnexion.
-                </p>
-              </div>
-            ) : (
-              <p className="text-gray-500">Informations utilisateur non disponibles</p>
-            )}
+              ) : (
+                <p className="text-gray-500">Informations utilisateur non disponibles</p>
+              )}
+            </div>
           </section>
 
           {/* Configuration PC */}
-          <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Ma Configuration PC</h2>
+          <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 bg-gray-50/60">
+              <h2 className="text-lg sm:text-xl font-semibold">Ma Configuration PC</h2>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => toggleDialog('hardwareConfig')}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-white"
                 disabled={loading}
               >
                 <Settings className="h-4 w-4 mr-1" />
-                Modifier la configuration
+                Modifier
               </Button>
             </div>
 
-            {loading ? <SkeletonSection lines={4} /> : (
-              <div className="space-y-3 text-sm sm:text-base">
-                {HARDWARE_CONFIGS.map(({ key, label, hasType, hasDetails }) => {
-                  const item = user?.config?.[key];
-                  return (
-                    <div key={key} className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span className="font-medium">{label}:</span>
-                      <span className="sm:ml-2">
-                        <span className="font-semibold">{item?.libelle || "Non configuré"}</span>
-                        {hasType && item?.type && <span className="text-gray-500 italic font-normal"> ({item.type})</span>}
-                        {hasDetails && item?.width && item?.height && item?.aspectRatio && (
-                          <span className="text-gray-500 italic font-normal"> ({item.width}x{item.height} - {item.aspectRatio})</span>
-                        )}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div className="p-5">
+              {loading ? <SkeletonSection lines={4} /> : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {HARDWARE_CONFIGS.map(({ key, label, icon: Icon, hasType, hasDetails }) => {
+                    const item = user?.config?.[key];
+                    return (
+                      <div key={key} className="bg-gray-50 rounded-lg p-3">
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
+                          <Icon className="h-3.5 w-3.5 shrink-0" />
+                          {label}
+                        </p>
+                        <p className="text-base font-semibold text-gray-900 truncate">
+                          {item?.libelle || <span className="text-gray-400 font-normal">Non configuré</span>}
+                          {hasType && item?.type && <span className="text-gray-500 italic font-normal text-sm"> ({item.type})</span>}
+                          {hasDetails && item?.width && item?.height && item?.aspectRatio && (
+                            <span className="text-gray-500 italic font-normal text-sm"> ({item.width}x{item.height} - {item.aspectRatio})</span>
+                          )}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </section>
         </div>
 
         {/* Mes posts */}
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Mes publications</h2>
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 bg-gray-50/60">
+            <h2 className="text-lg sm:text-xl font-semibold">Mes publications</h2>
           </div>
-          <UserPosts />
+          <div className="p-5">
+            <UserPosts />
+          </div>
         </section>
 
         {/* Dialogues modaux */}
